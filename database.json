@@ -1,0 +1,18 @@
+{
+  "thobe": {
+    "title": "Palestinian Thobe – Classic Tatreez",
+    "image_url": "https://your-cdn.com/images/thobe-classic.jpg"
+  },
+  "bag": {
+    "title": "Tatreez Shoulder Bag",
+    "image_url": "https://your-cdn.com/images/tatreez-bag.jpg"
+  },
+  "tatreez": {
+    "title": "Tatreez Detail – Close Up",
+    "image_url": "https://your-cdn.com/images/tatreez-closeup.jpg"
+  },
+  "default": {
+    "title": "Ghuzrat Watan – Default Image",
+    "image_url": "https://your-cdn.com/images/default.jpg"
+  }
+}
