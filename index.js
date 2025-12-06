@@ -5,224 +5,156 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const path = require("path");
 
-// ===== 2) تحميل قاعدة البيانات rule-based من الملف =====
+// 🔹 NEW: استدعاء مكتبة OpenAI
+const OpenAI = require("openai");
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // لازم تكون مضافة في Render
+});
+
+// تحميل "قاعدة البيانات" rule-based من ملف JSON
+// حاوي معلومات: الكلمة المفتاحيّة -> صورة مناسبة
 const dbPath = path.join(__dirname, "database.json");
-let db = { styles: {}, colors: {}, patterns: {} };
+const db = JSON.parse(fs.readFileSync(dbPath, "utf8"));
 
-try {
-  db = JSON.parse(fs.readFileSync(dbPath, "utf8"));
-  console.log("✅ database.json loaded");
-} catch (err) {
-  console.error(
-    "⚠️ لم يتم قراءة database.json، سيتم استخدام قيم افتراضية",
-    err,
-  );
-}
-
-// ===== 3) إعداد التطبيق =====
+// ===== 2) إعداد التطبيق =====
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
-// "أسماء الموديلات" كمتغيرات (زي ما قال لك صاحبك)
+// أسماء "الموديلات" (شكلية عشان المنظر بس 😄)
 const TEXT_MODEL_NAME = "gw-simple-parser-v1";
 const IMAGE_MODEL_NAME = "gw-static-mapper-v1";
 
-// ===== 4) دالة: تحويل وصف المستخدم إلى JSON منظم =====
+// ===== 3) دالة: تحويل وصف المستخدم إلى JSON منظم =====
 function parseDescriptionToJson(description) {
   const text = (description || "").toLowerCase();
 
-  // اللون
-  let baseColor = "black";
-  if (text.includes("احمر") || text.includes("أحمر") || text.includes("red"))
-    baseColor = "red";
-  else if (
-    text.includes("ازرق") ||
-    text.includes("أزرق") ||
-    text.includes("blue")
-  )
-    baseColor = "blue";
-  else if (
-    text.includes("اخضر") ||
-    text.includes("أخضر") ||
-    text.includes("green")
-  )
-    baseColor = "green";
-  else if (
-    text.includes("ابيض") ||
-    text.includes("أبيض") ||
-    text.includes("white")
-  )
-    baseColor = "white";
+  // مثال بسيط: نستخرج كلمات مفتاحية
+  const keywords = [];
 
-  // الأسلوب (تقليدي / مودرن)
-  let style = "traditional";
-  if (text.includes("حديث") || text.includes("مودرن") || text.includes("عصري"))
-    style = "modern";
-
-  // منطقة التطريز
-  let embroideryArea = "full";
-  if (text.includes("الصدر") && text.includes("الاكمام"))
-    embroideryArea = "chest_and_sleeves";
-  else if (text.includes("الصدر")) embroideryArea = "chest_only";
-  else if (text.includes("الاكمام") || text.includes("الأكمام"))
-    embroideryArea = "sleeves_only";
-
-  // المناسبة
-  let formality = "casual";
-  if (text.includes("عرس") || text.includes("زفاف") || text.includes("wedding"))
-    formality = "wedding";
-  else if (text.includes("سهرة") || text.includes("مناسب"))
-    formality = "evening";
+  if (
+    text.includes("thobe") ||
+    text.includes("thawb") ||
+    text.includes("dress")
+  ) {
+    keywords.push("thobe");
+  }
+  if (text.includes("red")) keywords.push("red");
+  if (text.includes("black")) keywords.push("black");
+  if (text.includes("bag")) keywords.push("bag");
+  if (text.includes("necklace") || text.includes("accessory"))
+    keywords.push("accessory");
+  if (text.includes("tatreez") || text.includes("embroidery"))
+    keywords.push("tatreez");
 
   return {
-    textModel: TEXT_MODEL_NAME,
-    imageModel: IMAGE_MODEL_NAME,
-    baseColor,
-    style,
-    embroideryArea,
-    formality,
-    originalDescription: description,
+    model: TEXT_MODEL_NAME,
+    raw_text: description,
+    keywords,
   };
 }
 
-// ===== 5) دالة: اختيار صورة حسب الـ JSON (حاليًا placeholders) =====
-function mapJsonToImageUrl(dressSpec) {
-  const { baseColor, style, embroideryArea, formality } = dressSpec;
+// ===== 4) دالة: اختيار صورة مناسبة من "قاعدة البيانات" =====
+function mapJsonToImage(parsedJson) {
+  const { keywords } = parsedJson;
 
-  // هنا لاحقًا حطي روابط صور حقيقية من متجرك بدل placeholders
-  if (
-    baseColor === "red" &&
-    style === "traditional" &&
-    embroideryArea === "chest_and_sleeves"
-  ) {
-    return "https://via.placeholder.com/400x600?text=Red+Traditional+Chest+%2B+Sleeves";
+  // نحاول نطابق أول keyword موجودة في db
+  for (const kw of keywords) {
+    if (db[kw]) {
+      return {
+        model: IMAGE_MODEL_NAME,
+        keyword_matched: kw,
+        image_url: db[kw].image_url,
+        title: db[kw].title,
+      };
+    }
   }
 
-  if (baseColor === "black" && style === "modern") {
-    return "https://via.placeholder.com/400x600?text=Black+Modern+Dress";
-  }
-
-  if (formality === "wedding") {
-    return "https://via.placeholder.com/400x600?text=Wedding+Dress";
-  }
-
-  // صورة افتراضية
-  return "https://via.placeholder.com/400x600?text=Default+Embroidery+Dress";
+  // لو ما لقينا إشي، نرجع صورة افتراضية
+  return {
+    model: IMAGE_MODEL_NAME,
+    keyword_matched: null,
+    image_url:
+      db.default?.image_url ||
+      "https://via.placeholder.com/600x800?text=Ghuzrat+Watan",
+    title: db.default?.title || "Default Ghuzrat Watan Image",
+  };
 }
 
-// ===== 6) API: وصف → JSON → ملف → صورة → يرجّع JSON + imageUrl =====
-app.post("/generate-dress", (req, res) => {
+// ===== 5) الراوت الرئيسي القديم (rule-based) =====
+// /api/gw/image  ← هذا يختار صورة من database.json
+app.post("/api/gw/image", (req, res) => {
   try {
-    const description =
-      req.body.description || req.body.text || req.body.prompt || "";
+    const description = req.body.description || "";
+    const parsed = parseDescriptionToJson(description);
+    const imageResult = mapJsonToImage(parsed);
 
-    if (!description.trim()) {
-      return res.status(400).json({ error: "الرجاء إدخال وصف للثوب" });
-    }
-
-    // أ) تحليل الوصف إلى JSON
-    const dressSpec = parseDescriptionToJson(description);
-
-    // ب) حفظ JSON في ملف (هذا هو "الملف اللي يغذي النموذج" لو حبيتي تستخدمينه لاحقًا)
-    fs.writeFileSync(
-      "last-dress.json",
-      JSON.stringify(dressSpec, null, 2),
-      "utf-8",
-    );
-
-    // ج) اختيار صورة حسب JSON
-    const imageUrl = mapJsonToImageUrl(dressSpec);
-
-    // د) إعادة النتيجة
     return res.json({
-      spec: dressSpec,
-      imageUrl,
+      ok: true,
+      description,
+      parsed,
+      image: imageResult,
     });
   } catch (err) {
-    console.error("Error in /generate-dress:", err);
-    return res.status(500).json({ error: "حدث خطأ في توليد الثوب" });
+    console.error(err);
+    return res.status(500).json({
+      ok: false,
+      error: "Internal server error",
+    });
   }
 });
 
-// ===== 7) صفحة بسيطة للاختبار من المتصفح =====
-app.get("/test-dress", (req, res) => {
-  res.send(`
-    <html dir="rtl">
-      <head>
-        <meta charset="UTF-8" />
-        <title>مولّد أثواب غرزة وطن</title>
-      </head>
-      <body style="font-family: sans-serif; padding: 20px;">
-        <h2>توليد ثوب حسب الوصف - غرزة وطن</h2>
-        <p>اكتبي وصف الثوب (لون، نوع التطريز، المناسبة...):</p>
-        <textarea id="desc" rows="4" cols="60" style="width:100%;"></textarea>
-        <br/><br/>
-        <button onclick="generate()">توليد الثوب</button>
+// ===== 6) NEW: راوت جديد يستخدم OpenAI لتوليد صورة من الوصف =====
+// هذا اللي رح نستخدمه لفكرة "الثوب من الوصف"
+app.post("/api/gw/generate-dress", async (req, res) => {
+  try {
+    const description = req.body.description || "";
 
-        <h3>الصورة الناتجة:</h3>
-        <img id="dressImg" src="" style="max-width:300px; border:1px solid #ccc;" />
+    if (!description.trim()) {
+      return res.status(400).json({
+        ok: false,
+        error: "الرجاء إدخال وصف للثوب",
+      });
+    }
 
-        <h3>البيانات (JSON):</h3>
-        <pre id="jsonBox" style="background:#f5f5f5; padding:10px; border:1px solid #ddd;"></pre>
+    const prompt = `
+High-quality fashion illustration of a modest Palestinian embroidered dress.
+Full dress visible, front view, neutral background, no face details.
+Traditional yet modern style, suitable for an online shop.
+User description (Arabic or English): ${description}
+`;
 
-        <script>
-          async function generate() {
-            const desc = document.getElementById("desc").value;
-            const res = await fetch("/generate-dress", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ description: desc })
-            });
+    const result = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      size: "1024x1024",
+    });
 
-            const data = await res.json();
-            if (data.error) {
-              alert(data.error);
-              return;
-            }
+    const imageUrl = result.data[0].url;
 
-            document.getElementById("dressImg").src = data.imageUrl;
-            document.getElementById("jsonBox").textContent = JSON.stringify(data.spec, null, 2);
-          }
-        </script>
-      </body>
-    </html>
-  `);
+    return res.json({
+      ok: true,
+      description,
+      imageUrl,
+    });
+  } catch (error) {
+    console.error("Error in /api/gw/generate-dress:", error);
+    return res.status(500).json({
+      ok: false,
+      error: "فشل في إنشاء الصورة، حاولي مرة أخرى لاحقًا.",
+    });
+  }
 });
 
-// ===== 8) راوت رئيسي بسيط =====
+// راوت بسيط للفحص
 app.get("/", (req, res) => {
-  res.send("Ghuzrat Watan dress generator (rule-based) is running ✅");
+  res.send("Ghuzrat Watan AI API is running ✅");
 });
 
-// ===== 9) API ثانية: تحويل نص بسيط لوصف إنجليزي باستخدام database.json =====
-app.post("/generate-description", (req, res) => {
-  const userText = req.body.text?.toLowerCase() || "";
-
-  let style = "traditional Palestinian thobe";
-  let color = "classic embroidery colors";
-  let pattern = "tatreez patterns";
-
-  for (let key in db.styles) {
-    if (userText.includes(key)) style = db.styles[key];
-  }
-
-  for (let key in db.colors) {
-    if (userText.includes(key)) color = db.colors[key];
-  }
-
-  for (let key in db.patterns) {
-    if (userText.includes(key)) pattern = db.patterns[key];
-  }
-
-  const finalDescription = `A ${style}, featuring ${color}, decorated with ${pattern}.`;
-
-  res.json({ description: finalDescription });
-});
-
-// ===== 10) تشغيل السيرفر =====
+// ===== 7) تشغيل السيرفر =====
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server listening on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
 });
+add openai dress generator
