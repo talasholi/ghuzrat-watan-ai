@@ -51,7 +51,7 @@
     style.textContent =
       "#gw-music-bar {" +
       "  width: 100%;" +
-      "  background: #fbe7dd;" + /* بيج وردي ناعم */
+      "  background: #fbe7dd;" +
       "  border-bottom: 1px solid #e2c8ba;" +
       "  font-family: inherit;" +
       "  font-size: 14px;" +
@@ -224,11 +224,9 @@
     }
   }
 
-  // تشغيل initMusicBar بعد تحميل الصفحة
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initMusicBar);
   } else {
     initMusicBar();
   }
 })();
-Add music-player.js
