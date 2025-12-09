@@ -11,10 +11,16 @@
     }
   ];
 
-  var STORAGE_KEY = "gw-music-state";
+  var STORAGE_KEY = "gw-music-state-v2";
 
   function initMusicBar() {
     if (!tracks.length || !window.document || !document.body) return;
+
+    // 🧹 امسح أي شريط قديم لو موجود
+    var oldBar = document.getElementById("gw-music-bar");
+    if (oldBar && oldBar.parentNode) {
+      oldBar.parentNode.removeChild(oldBar);
+    }
 
     // ===== 2) استرجاع حالة الموسيقى بين الصفحات =====
     var savedState = null;
@@ -24,9 +30,10 @@
       savedState = null;
     }
 
-    // ===== 3) إنشاء شريط الموسيقى في أعلى الصفحة =====
+    // ===== 3) إنشاء شريط الموسيقى في أعلى الصفحة (مخفي افتراضياً) =====
     var bar = document.createElement("div");
     bar.id = "gw-music-bar";
+    bar.style.display = "none"; // ← مخفي من البداية
     bar.innerHTML =
       '<div class="gw-music-inner">' +
       '  <div class="gw-music-left">' +
@@ -201,9 +208,7 @@
     });
 
     hideBtn.addEventListener("click", function () {
-      if (audio) {
-        audio.pause();
-      }
+      if (audio) audio.pause();
       isPlaying = false;
       saveState();
       bar.style.display = "none";
@@ -212,16 +217,49 @@
     window.addEventListener("beforeunload", saveState);
 
     updateTitle();
-    if (isPlaying) {
-      audio
-        .play()
-        .then(function () {
-          toggleBtn.textContent = "⏸️ إيقاف";
-        })
-        .catch(function (e) {
-          console.warn("Autoplay on reload blocked:", e);
-        });
+
+    // ===== 6) إضافة أيقونة 🎵 داخل الهيدر =====
+    function attachHeaderButton() {
+      var header =
+        document.querySelector("header") ||
+        document.querySelector(".ec-header") ||
+        document.querySelector(".site-header");
+
+      if (!header) {
+        // لو لسه الهيدر ما تحمل، نجرب بعد شوي
+        setTimeout(attachHeaderButton, 800);
+        return;
+      }
+
+      // لو الزر أصلاً موجود لا نكرره
+      if (document.getElementById("gw-header-music-btn")) return;
+
+      var btn = document.createElement("button");
+      btn.id = "gw-header-music-btn";
+      btn.type = "button";
+      btn.textContent = "🎵";
+      btn.title = "موسيقى غرزة وطن";
+      btn.style.cssText =
+        "margin-inline-start: 12px;" +
+        "background: transparent;" +
+        "border: none;" +
+        "cursor: pointer;" +
+        "font-size: 20px;";
+
+      btn.addEventListener("click", function () {
+        // إظهار الشريط (أو إخفاؤه لو حبيتي يكون toggle)
+        if (bar.style.display === "none") {
+          bar.style.display = "block";
+        } else {
+          bar.style.display = "none";
+        }
+      });
+
+      // نحاول نضيفة قرب عناصر اللغة/الأيقونات
+      header.appendChild(btn);
     }
+
+    attachHeaderButton();
   }
 
   if (document.readyState === "loading") {
@@ -230,3 +268,4 @@
     initMusicBar();
   }
 })();
+Add header music icon
