@@ -170,7 +170,7 @@
     var iconBtn = document.createElement("button");
     iconBtn.id = "gw-header-music-btn";
     iconBtn.type = "button";
-    iconBtn.textContent = "🎵";
+    iconBtn.textContent = "♫";
     iconBtn.title = "موسيقى غرزة وطن";
     iconBtn.style.cssText =
       "position: absolute;" +
