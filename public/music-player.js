@@ -11,7 +11,7 @@
     }
   ];
 
-  var STORAGE_KEY = "gw-music-state-v3";
+  var STORAGE_KEY = "gw-music-state-v4";
 
   function initMusicBar() {
     if (!tracks.length || !window.document || !document.body) return;
@@ -22,12 +22,24 @@
       oldBar.parentNode.removeChild(oldBar);
     }
 
-    // ===== 2) استرجاع حالة التشغيل =====
+    // ===== 2) استرجاع حالة التشغيل من localStorage =====
     var savedState = null;
     try {
       savedState = JSON.parse(localStorage.getItem(STORAGE_KEY));
     } catch (e) {
       savedState = null;
+    }
+
+    var currentIndex = 0;
+    var isPlaying = false;
+
+    if (savedState) {
+      if (typeof savedState.currentIndex === "number") {
+        currentIndex = savedState.currentIndex;
+      }
+      if (typeof savedState.isPlaying === "boolean") {
+        isPlaying = savedState.isPlaying;
+      }
     }
 
     // ===== 3) إنشاء شريط الموسيقى (مخفي افتراضياً) =====
@@ -91,14 +103,7 @@
     document.head.appendChild(style);
 
     // ===== 5) منطق الصوت =====
-    var currentIndex = 0;
-    var isPlaying = false;
     var audio = null;
-
-    if (savedState && typeof savedState.currentIndex === "number") {
-      currentIndex = savedState.currentIndex;
-      isPlaying = !!savedState.isPlaying;
-    }
 
     function createAudio() {
       if (audio) audio.pause();
@@ -118,7 +123,7 @@
       try {
         localStorage.setItem(
           STORAGE_KEY,
-          JSON.stringify({ currentIndex, isPlaying })
+          JSON.stringify({ currentIndex: currentIndex, isPlaying: isPlaying })
         );
       } catch (e) {}
     }
@@ -130,20 +135,23 @@
 
     function loadCurrentTrack() {
       createAudio();
-      if (isPlaying) audio.play().catch(() => {});
+      if (isPlaying) {
+        audio.play().catch(function () {});
+      }
       updateTitle();
       saveState();
     }
 
     toggleBtn.addEventListener("click", function () {
       if (!isPlaying) {
-        audio.play()
-          .then(() => {
+        audio
+          .play()
+          .then(function () {
             isPlaying = true;
             toggleBtn.textContent = "⏸️ إيقاف";
             saveState();
           })
-          .catch(() => {});
+          .catch(function () {});
       } else {
         audio.pause();
         isPlaying = false;
@@ -164,9 +172,24 @@
       bar.style.display = "none";
     });
 
+    window.addEventListener("beforeunload", saveState);
+
     updateTitle();
 
-    // ===== 6) زر الموسيقى في أعلى يمين الصفحة – اللون الأسود =====
+    // 🔁 مهم: لو كانت الأغنية شغّالة في الصفحة السابقة → نشغّلها تلقائياً هنا
+    if (isPlaying) {
+      bar.style.display = "block"; // نعرض الشريط لأنه كان مستخدمه
+      audio
+        .play()
+        .then(function () {
+          toggleBtn.textContent = "⏸️ إيقاف";
+        })
+        .catch(function () {
+          // لو المتصفح منع التشغيل التلقائي، يظل الزر "تشغيل"
+        });
+    }
+
+    // ===== 6) زر الموسيقى في أعلى يمين الصفحة – أسود =====
     var iconBtn = document.createElement("button");
     iconBtn.id = "gw-header-music-btn";
     iconBtn.type = "button";
@@ -181,10 +204,14 @@
       "border: none;" +
       "cursor: pointer;" +
       "font-size: 24px;" +
-      "color: black;";   // ← لون الأيقونة أسود
+      "color: black;";
 
     iconBtn.addEventListener("click", function () {
-      bar.style.display = bar.style.display === "none" ? "block" : "none";
+      if (bar.style.display === "none") {
+        bar.style.display = "block";
+      } else {
+        bar.style.display = "none";
+      }
     });
 
     document.body.appendChild(iconBtn);
