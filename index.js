@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const path = require("path");
 
-// 🔹 NEW: استدعاء مكتبة OpenAI
+// 🔹 مكتبة OpenAI
 const OpenAI = require("openai");
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // لازم تكون مضافة في Render
@@ -21,6 +21,10 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 🔊 مهم: إتاحة ملفات static من فولدر public (مثل /audio, /images...)
+const publicPath = path.join(__dirname, "public");
+app.use(express.static(publicPath));
 
 // أسماء "الموديلات" (شكلية عشان المنظر بس 😄)
 const TEXT_MODEL_NAME = "gw-simple-parser-v1";
@@ -105,8 +109,7 @@ app.post("/api/gw/image", (req, res) => {
   }
 });
 
-// ===== 6) NEW: راوت جديد يستخدم OpenAI لتوليد صورة من الوصف =====
-// هذا اللي رح نستخدمه لفكرة "الثوب من الوصف"
+// ===== 6) راوت جديد يستخدم OpenAI لتوليد صورة من الوصف =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
     const description = req.body.description || "";
