@@ -16,6 +16,10 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 🔊 مهم: إتاحة ملفات static من فولدر public (مثل /audio, /images...)
+const publicPath = path.join(__dirname, "public");
+app.use(express.static(publicPath));
+
 // أسماء "الموديلات" (شكلية عشان المنظر بس 😄)
 const TEXT_MODEL_NAME = "gw-simple-parser-v1";
 const IMAGE_MODEL_NAME = "gw-static-mapper-v1";
@@ -104,7 +108,7 @@ app.get("/", (req, res) => {
   res.send("Ghuzrat Watan AI API is running ✅");
 });
 
-// ===== 6) تشغيل السيرفر محلياً =====
+// ===== 6) تشغيل السيرفر =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
