@@ -11,7 +11,7 @@
     }
   ];
 
-  var STORAGE_KEY = "gw-music-state-v4";
+  var STORAGE_KEY = "gw-music-state-v5";
 
   function initMusicBar() {
     if (!tracks.length || !window.document || !document.body) return;
@@ -22,7 +22,7 @@
       oldBar.parentNode.removeChild(oldBar);
     }
 
-    // ===== 2) استرجاع حالة التشغيل من localStorage =====
+    // ===== 2) استرجاع الحالة من localStorage =====
     var savedState = null;
     try {
       savedState = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -32,6 +32,7 @@
 
     var currentIndex = 0;
     var isPlaying = false;
+    var lastPosition = 0; // زمن آخر نقطة تشغيل بالثواني
 
     if (savedState) {
       if (typeof savedState.currentIndex === "number") {
@@ -40,12 +41,15 @@
       if (typeof savedState.isPlaying === "boolean") {
         isPlaying = savedState.isPlaying;
       }
+      if (typeof savedState.position === "number") {
+        lastPosition = savedState.position;
+      }
     }
 
-    // ===== 3) إنشاء شريط الموسيقى (مخفي افتراضياً) =====
+    // ===== 3) إنشاء شريط الموسيقى =====
     var bar = document.createElement("div");
     bar.id = "gw-music-bar";
-    bar.style.display = "none";
+    bar.style.display = isPlaying ? "block" : "none"; // لو كانت شغالة قبل، نعرض الشريط
     bar.innerHTML =
       '<div class="gw-music-inner">' +
       '  <div class="gw-music-left">' +
@@ -105,43 +109,65 @@
     // ===== 5) منطق الصوت =====
     var audio = null;
 
-    function createAudio() {
-      if (audio) audio.pause();
-      audio = new Audio(tracks[currentIndex].url);
-      audio.loop = true;
-      audio.volume = 0.4;
-    }
-
-    createAudio();
-
-    var toggleBtn = document.getElementById("gw-music-toggle");
-    var nextBtn = document.getElementById("gw-music-next");
-    var hideBtn = document.getElementById("gw-music-hide");
-    var titleSpan = document.getElementById("gw-music-title");
-
     function saveState() {
       try {
         localStorage.setItem(
           STORAGE_KEY,
-          JSON.stringify({ currentIndex: currentIndex, isPlaying: isPlaying })
+          JSON.stringify({
+            currentIndex: currentIndex,
+            isPlaying: isPlaying,
+            position: audio ? audio.currentTime : lastPosition
+          })
         );
       } catch (e) {}
     }
 
     function updateTitle() {
-      titleSpan.textContent =
-        "المقطع الحالي: " + tracks[currentIndex].title;
-    }
-
-    function loadCurrentTrack() {
-      createAudio();
-      if (isPlaying) {
-        audio.play().catch(function () {});
+      var titleSpan = document.getElementById("gw-music-title");
+      if (titleSpan) {
+        titleSpan.textContent =
+          "المقطع الحالي: " + tracks[currentIndex].title;
       }
-      updateTitle();
-      saveState();
     }
 
+    function createAudio() {
+      if (audio) {
+        audio.pause();
+        audio = null;
+      }
+      audio = new Audio(tracks[currentIndex].url);
+      audio.loop = true;
+      audio.volume = 0.4;
+
+      // لما تجهز الميتاداتا نرجع لآخر ثانية محفوظة
+      audio.addEventListener("loadedmetadata", function () {
+        var dur = audio.duration || 0;
+        var pos = lastPosition || 0;
+        if (dur && pos > 0 && pos < dur) {
+          audio.currentTime = pos;
+        }
+
+        if (isPlaying) {
+          audio
+            .play()
+            .then(function () {})
+            .catch(function () {});
+        }
+      });
+    }
+
+    createAudio();
+    updateTitle();
+
+    var toggleBtn = document.getElementById("gw-music-toggle");
+    var nextBtn = document.getElementById("gw-music-next");
+    var hideBtn = document.getElementById("gw-music-hide");
+
+    if (isPlaying && toggleBtn) {
+      toggleBtn.textContent = "⏸️ إيقاف";
+    }
+
+    // زر تشغيل/إيقاف
     toggleBtn.addEventListener("click", function () {
       if (!isPlaying) {
         audio
@@ -155,41 +181,47 @@
       } else {
         audio.pause();
         isPlaying = false;
+        lastPosition = audio.currentTime;
         toggleBtn.textContent = "▶️ تشغيل";
         saveState();
       }
     });
 
+    // زر تغيير المقطع
     nextBtn.addEventListener("click", function () {
       currentIndex = (currentIndex + 1) % tracks.length;
-      loadCurrentTrack();
+      lastPosition = 0; // نبدأ من البداية في المقطع الجديد
+      createAudio();
+      updateTitle();
+      if (isPlaying) {
+        audio
+          .play()
+          .then(function () {})
+          .catch(function () {});
+      }
+      saveState();
     });
 
+    // زر إخفاء
     hideBtn.addEventListener("click", function () {
-      if (audio) audio.pause();
+      if (audio) {
+        lastPosition = audio.currentTime;
+        audio.pause();
+      }
       isPlaying = false;
       saveState();
       bar.style.display = "none";
     });
 
-    window.addEventListener("beforeunload", saveState);
+    // نحفظ الوقت قبل مغادرة الصفحة
+    window.addEventListener("beforeunload", function () {
+      if (audio) {
+        lastPosition = audio.currentTime;
+      }
+      saveState();
+    });
 
-    updateTitle();
-
-    // 🔁 مهم: لو كانت الأغنية شغّالة في الصفحة السابقة → نشغّلها تلقائياً هنا
-    if (isPlaying) {
-      bar.style.display = "block"; // نعرض الشريط لأنه كان مستخدمه
-      audio
-        .play()
-        .then(function () {
-          toggleBtn.textContent = "⏸️ إيقاف";
-        })
-        .catch(function () {
-          // لو المتصفح منع التشغيل التلقائي، يظل الزر "تشغيل"
-        });
-    }
-
-    // ===== 6) زر الموسيقى في أعلى يمين الصفحة – أسود =====
+    // ===== 6) زر الأيقونة في أعلى يمين الصفحة (أسود) =====
     var iconBtn = document.createElement("button");
     iconBtn.id = "gw-header-music-btn";
     iconBtn.type = "button";
