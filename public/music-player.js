@@ -22,7 +22,7 @@
       oldBar.parentNode.removeChild(oldBar);
     }
 
-    // ===== 2) استرجاع حالة الموسيقى =====
+    // ===== 2) استرجاع حالة التشغيل =====
     var savedState = null;
     try {
       savedState = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -33,11 +33,11 @@
     // ===== 3) إنشاء شريط الموسيقى (مخفي افتراضياً) =====
     var bar = document.createElement("div");
     bar.id = "gw-music-bar";
-    bar.style.display = "none"; // مخفي بالبداية
+    bar.style.display = "none";
     bar.innerHTML =
       '<div class="gw-music-inner">' +
       '  <div class="gw-music-left">' +
-      '    <strong>🎵 موسيقى غرزة وطن</strong>' +
+      '    <strong> موسيقى غرزة وطن</strong>' +
       '    <span id="gw-music-title"></span>' +
       "  </div>" +
       '  <div class="gw-music-right">' +
@@ -74,20 +74,9 @@
       "  justify-content: space-between;" +
       "  gap: 12px;" +
       "}" +
-      "#gw-music-bar .gw-music-left {" +
-      "  display: flex;" +
-      "  flex-direction: column;" +
-      "  gap: 2px;" +
-      "}" +
       "#gw-music-bar #gw-music-title {" +
       "  font-size: 12px;" +
       "  color: #5b4035;" +
-      "}" +
-      "#gw-music-bar .gw-music-right {" +
-      "  display: flex;" +
-      "  gap: 6px;" +
-      "  align-items: center;" +
-      "  flex-shrink: 0;" +
       "}" +
       "#gw-music-bar button {" +
       "  border: none;" +
@@ -97,32 +86,6 @@
       "  font-size: 12px;" +
       "  background: #f3d4c5;" +
       "  color: #4a2f26;" +
-      "  white-space: nowrap;" +
-      "}" +
-      "#gw-music-bar button:hover {" +
-      "  opacity: 0.9;" +
-      "}" +
-      "#gw-music-hide {" +
-      "  background: #f1b7b0;" +
-      "}" +
-      "@media (max-width: 700px) {" +
-      "  #gw-music-bar .gw-music-inner {" +
-      "    flex-direction: column;" +
-      "    align-items: flex-start;" +
-      "    gap: 4px;" +
-      "  }" +
-      "  #gw-music-bar .gw-music-right {" +
-      "    width: 100%;" +
-      "    justify-content: flex-start;" +
-      "    flex-wrap: wrap;" +
-      "  }" +
-      "  #gw-music-bar button {" +
-      "    padding: 3px 8px;" +
-      "    font-size: 11px;" +
-      "  }" +
-      "  #gw-music-bar #gw-music-title {" +
-      "    font-size: 11px;" +
-      "  }" +
       "}";
 
     document.head.appendChild(style);
@@ -138,10 +101,7 @@
     }
 
     function createAudio() {
-      if (audio) {
-        audio.pause();
-        audio = null;
-      }
+      if (audio) audio.pause();
       audio = new Audio(tracks[currentIndex].url);
       audio.loop = true;
       audio.volume = 0.4;
@@ -158,10 +118,7 @@
       try {
         localStorage.setItem(
           STORAGE_KEY,
-          JSON.stringify({
-            currentIndex: currentIndex,
-            isPlaying: isPlaying
-          })
+          JSON.stringify({ currentIndex, isPlaying })
         );
       } catch (e) {}
     }
@@ -173,27 +130,20 @@
 
     function loadCurrentTrack() {
       createAudio();
-      if (isPlaying) {
-        audio.play().catch(function (e) {
-          console.warn("Autoplay blocked:", e);
-        });
-      }
+      if (isPlaying) audio.play().catch(() => {});
       updateTitle();
       saveState();
     }
 
     toggleBtn.addEventListener("click", function () {
       if (!isPlaying) {
-        audio
-          .play()
-          .then(function () {
+        audio.play()
+          .then(() => {
             isPlaying = true;
             toggleBtn.textContent = "⏸️ إيقاف";
             saveState();
           })
-          .catch(function (e) {
-            console.warn("Play blocked:", e);
-          });
+          .catch(() => {});
       } else {
         audio.pause();
         isPlaying = false;
@@ -214,32 +164,27 @@
       bar.style.display = "none";
     });
 
-    window.addEventListener("beforeunload", saveState);
-
     updateTitle();
 
-    // ===== 6) زر 🎵 ثابت في أعلى يمين الموقع =====
+    // ===== 6) زر الموسيقى في أعلى يمين الصفحة – اللون الأسود =====
     var iconBtn = document.createElement("button");
     iconBtn.id = "gw-header-music-btn";
     iconBtn.type = "button";
     iconBtn.textContent = "🎵";
     iconBtn.title = "موسيقى غرزة وطن";
     iconBtn.style.cssText =
-      "position: fixed;" +
-      "top: 10px;" +
+      "position: absolute;" +
+      "top: 12px;" +
       "right: 20px;" +
       "z-index: 10000;" +
       "background: transparent;" +
       "border: none;" +
       "cursor: pointer;" +
-      "font-size: 22px;";
+      "font-size: 24px;" +
+      "color: black;";   // ← لون الأيقونة أسود
 
     iconBtn.addEventListener("click", function () {
-      if (bar.style.display === "none") {
-        bar.style.display = "block";
-      } else {
-        bar.style.display = "none";
-      }
+      bar.style.display = bar.style.display === "none" ? "block" : "none";
     });
 
     document.body.appendChild(iconBtn);
