@@ -11,7 +11,7 @@
     }
   ];
 
-  var STORAGE_KEY = "gw-music-state-v2";
+  var STORAGE_KEY = "gw-music-state-v3";
 
   function initMusicBar() {
     if (!tracks.length || !window.document || !document.body) return;
@@ -22,7 +22,7 @@
       oldBar.parentNode.removeChild(oldBar);
     }
 
-    // ===== 2) استرجاع حالة الموسيقى بين الصفحات =====
+    // ===== 2) استرجاع حالة الموسيقى =====
     var savedState = null;
     try {
       savedState = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -30,10 +30,10 @@
       savedState = null;
     }
 
-    // ===== 3) إنشاء شريط الموسيقى في أعلى الصفحة (مخفي افتراضياً) =====
+    // ===== 3) إنشاء شريط الموسيقى (مخفي افتراضياً) =====
     var bar = document.createElement("div");
     bar.id = "gw-music-bar";
-    bar.style.display = "none"; // ← مخفي من البداية
+    bar.style.display = "none"; // مخفي بالبداية
     bar.innerHTML =
       '<div class="gw-music-inner">' +
       '  <div class="gw-music-left">' +
@@ -127,7 +127,7 @@
 
     document.head.appendChild(style);
 
-    // ===== 5) منطق تشغيل الصوت =====
+    // ===== 5) منطق الصوت =====
     var currentIndex = 0;
     var isPlaying = false;
     var audio = null;
@@ -144,7 +144,7 @@
       }
       audio = new Audio(tracks[currentIndex].url);
       audio.loop = true;
-      audio.volume = 0.4; // صوت خفيف
+      audio.volume = 0.4;
     }
 
     createAudio();
@@ -218,48 +218,31 @@
 
     updateTitle();
 
-    // ===== 6) إضافة أيقونة 🎵 داخل الهيدر =====
-    function attachHeaderButton() {
-      var header =
-        document.querySelector("header") ||
-        document.querySelector(".ec-header") ||
-        document.querySelector(".site-header");
+    // ===== 6) زر 🎵 ثابت في أعلى يمين الموقع =====
+    var iconBtn = document.createElement("button");
+    iconBtn.id = "gw-header-music-btn";
+    iconBtn.type = "button";
+    iconBtn.textContent = "🎵";
+    iconBtn.title = "موسيقى غرزة وطن";
+    iconBtn.style.cssText =
+      "position: fixed;" +
+      "top: 10px;" +
+      "right: 20px;" +
+      "z-index: 10000;" +
+      "background: transparent;" +
+      "border: none;" +
+      "cursor: pointer;" +
+      "font-size: 22px;";
 
-      if (!header) {
-        // لو لسه الهيدر ما تحمل، نجرب بعد شوي
-        setTimeout(attachHeaderButton, 800);
-        return;
+    iconBtn.addEventListener("click", function () {
+      if (bar.style.display === "none") {
+        bar.style.display = "block";
+      } else {
+        bar.style.display = "none";
       }
+    });
 
-      // لو الزر أصلاً موجود لا نكرره
-      if (document.getElementById("gw-header-music-btn")) return;
-
-      var btn = document.createElement("button");
-      btn.id = "gw-header-music-btn";
-      btn.type = "button";
-      btn.textContent = "🎵";
-      btn.title = "موسيقى غرزة وطن";
-      btn.style.cssText =
-        "margin-inline-start: 12px;" +
-        "background: transparent;" +
-        "border: none;" +
-        "cursor: pointer;" +
-        "font-size: 20px;";
-
-      btn.addEventListener("click", function () {
-        // إظهار الشريط (أو إخفاؤه لو حبيتي يكون toggle)
-        if (bar.style.display === "none") {
-          bar.style.display = "block";
-        } else {
-          bar.style.display = "none";
-        }
-      });
-
-      // نحاول نضيفة قرب عناصر اللغة/الأيقونات
-      header.appendChild(btn);
-    }
-
-    attachHeaderButton();
+    document.body.appendChild(iconBtn);
   }
 
   if (document.readyState === "loading") {
@@ -268,4 +251,3 @@
     initMusicBar();
   }
 })();
-Add header music icon
