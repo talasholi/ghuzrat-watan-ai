@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>صمّم ثوبك بالتطريز</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #faf5ff;
+      margin: 0;
+      padding: 0;
+      direction: rtl;
+    }
+
+    .wrapper {
+      max-width: 700px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      padding: 24px 20px 28px;
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      color: #4c1d95;
+      font-size: 1.6rem;
+    }
+
+    p.subtitle {
+      text-align: center;
+      color: #6b7280;
+      margin-top: 0;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      padding: 10px 12px;
+      resize: vertical;
+      font-size: 0.95rem;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.18);
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 22px;
+      font-size: 0.98rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .status.error {
+      color: #b91c1c;
+    }
+
+    .result {
+      margin-top: 26px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 18px;
+    }
+
+    .result img {
+      max-width: 100%;
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      display: block;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>صمّم ثوبك بالتطريز ✨</h1>
+
+    <label for="description">وصف الثوب</label>
+    <textarea id="description" placeholder="مثال: ثوب أحمر طويل بتطريز فلسطيني أسود وذهبي..."></textarea>
+
+    <div class="actions">
+      <button id="generateBtn">
+        <span>Generate</span>
+        <span id="spinner" style="display:none;">⏳</span>
+      </button>
+      <div id="status"></div>
+    </div>
+
+    <div id="result" class="result" style="display:none;">
+      <h2>النتيجة 🎨</h2>
+      <img id="resultImage" src="" alt="dress design"/>
+      <pre id="debug"></pre>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://ghuzrat-watan-ai.onrender.com/api/gw/generate-dress";
+
+    const desc = document.getElementById("description");
+    const btn = document.getElementById("generateBtn");
+    const spin = document.getElementById("spinner");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const img = document.getElementById("resultImage");
+    const debug = document.getElementById("debug");
+
+    async function generateDress() {
+      const d = desc.value.trim();
+
+      status.textContent = "";
+      status.classList.remove("error");
+
+      if (!d) {
+        status.textContent = "⚠️ الرجاء كتابة وصف للثوب";
+        status.classList.add("error");
+        return;
+      }
+
+      btn.disabled = true;
+      spin.style.display = "inline-block";
+      status.textContent = "⏳ جاري إنشاء الصورة...";
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description: d })
+        });
+
+        const data = await res.json();
+        debug.textContent = JSON.stringify(data, null, 2);
+
+        if (!data.ok) throw new Error(data.error);
+
+        let imageUrl =
+          data?.image?.url ||
+          data?.image?.image_url ||
+          data?.image_url ||
+          "";
+
+        if (!imageUrl) throw new Error("لا يوجد رابط صورة في الرد.");
+
+        img.src = imageUrl;
+        result.style.display = "block";
+        status.textContent = "✔️ تم إنشاء الصورة بنجاح";
+
+      } catch (err) {
+        status.textContent = "❌ خطأ: " + err.message;
+        status.classList.add("error");
+      } finally {
+        btn.disabled = false;
+        spin.style.display = "none";
+      }
+    }
+
+    btn.onclick = generateDress;
+  </script>
+</body>
+</html>
