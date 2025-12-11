@@ -343,6 +343,7 @@
       box-shadow: 0 5px 15px rgba(133, 101, 220, 0.35);
       transition: transform 0.12s ease, box-shadow 0.12s ease;
       white-space: nowrap;
+      text-decoration: none; /* مهم عشان اللينك يبين كبطن */
     }
 
     .download-btn:hover {
@@ -546,6 +547,7 @@
       if (type) statusText.classList.add(type);
     }
 
+    // ✅ هنا التعديل المهم: نستخدم <a> كرابط فتح/تحميل
     function createImageCard(url, index) {
       const card = document.createElement("div");
       card.className = "image-card";
@@ -566,16 +568,17 @@
       caption.className = "image-caption";
       caption.textContent = "تصميم ثوب بالتطريز #" + (index + 1);
 
-      const btn = document.createElement("button");
-      btn.className = "download-btn";
-      btn.innerHTML = '<span class="icon">⬇️</span><span>فتح / حفظ</span>';
-      btn.addEventListener("click", () => {
-        // فتح الصورة في تبويب جديد (من هناك يقدر يحفظها)
-        window.open(url, "_blank");
-      });
+      // رابط بدل زر + خصائص فتح/تحميل
+      const link = document.createElement("a");
+      link.className = "download-btn";
+      link.href = url;
+      link.target = "_blank";          // يفتح في تبويب جديد
+      link.rel = "noopener";           // أمان
+      link.download = "gw-dress-" + (index + 1) + ".png"; // محاولة تحميل مباشر
+      link.innerHTML = '<span class="icon">⬇️</span><span>فتح / حفظ</span>';
 
       footer.appendChild(caption);
-      footer.appendChild(btn);
+      footer.appendChild(link);
 
       card.appendChild(inner);
       card.appendChild(footer);
@@ -583,7 +586,6 @@
       return card;
     }
 
-    // استدعاء الـ API لإنشاء صورة واحدة
     async function callGenerateAPI(description) {
       const response = await fetch("/api/gw/generate-dress", {
         method: "POST",
@@ -598,8 +600,6 @@
       }
 
       const data = await response.json();
-      console.log("API response:", data); // لمراقبة الرد من F12
-
       const imageUrl = data.imageUrl || data.image_url;
 
       if (!data.ok || !imageUrl) {
