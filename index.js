@@ -8,7 +8,7 @@ const path = require("path");
 // 🔹 مكتبة OpenAI
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // لازم تكون مضافة في Render
+  apiKey: process.env.OPENAI_API_KEY, // تأكدي إنه موجود في Render
 });
 
 // تحميل "قاعدة البيانات" rule-based من ملف JSON
@@ -81,7 +81,7 @@ function mapJsonToImage(parsedJson) {
   };
 }
 
-// ===== 5) الراوت rule-based القديم (لو حبيتي تستخدميه) =====
+// ===== 5) الراوت rule-based القديم (اختياري) =====
 app.post("/api/gw/image", (req, res) => {
   try {
     const description = req.body.description || "";
@@ -103,7 +103,7 @@ app.post("/api/gw/image", (req, res) => {
   }
 });
 
-// ===== 6) راوت جديد يستخدم OpenAI + يرجّع data URL جاهزة =====
+// ===== 6) راوت الذكاء الاصطناعي لتوليد الثوب =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
     const description = (req.body.description || "").trim();
@@ -122,28 +122,29 @@ Traditional yet modern style, suitable for an online shop.
 User description (Arabic or English): ${description}
 `;
 
-    // ✅ نطلب الصورة من OpenAI بصيغة base64
+    // 🔥 نطلب صورة واحدة من OpenAI، ونرجّع الرابط كما هو
     const result = await openai.images.generate({
+      // لو مكتبة OpenAI عندك قديمة جرّبي تغيير الموديل لـ "dall-e-3"
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
       n: 1,
-      response_format: "b64_json",
     });
 
-    if (!result.data || !result.data[0] || !result.data[0].b64_json) {
-      throw new Error("لم يتم استلام بيانات الصورة من OpenAI");
+    if (!result.data || !result.data[0] || !result.data[0].url) {
+      console.error("No URL returned from OpenAI:", result);
+      return res.status(500).json({
+        ok: false,
+        error: "لم يتم استلام رابط الصورة من OpenAI.",
+      });
     }
 
-    const base64 = result.data[0].b64_json;
-    const dataUrl = `data:image/png;base64,${base64}`;
+    const imageUrl = result.data[0].url;
 
-    // نرجّع dataUrl في imageUrl عشان الـ front-end يستخدمه مباشرة
     return res.json({
       ok: true,
       description,
-      imageUrl: dataUrl,
-      dataUrl,
+      imageUrl, // الفرونت سيستخدم هذا مباشرة في <img>
     });
   } catch (error) {
     console.error("Error in /api/gw/generate-dress:", error);
