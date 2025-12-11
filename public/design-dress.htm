@@ -583,6 +583,7 @@
       return card;
     }
 
+    // استدعاء الـ API لإنشاء صورة واحدة
     async function callGenerateAPI(description) {
       const response = await fetch("/api/gw/generate-dress", {
         method: "POST",
@@ -597,6 +598,8 @@
       }
 
       const data = await response.json();
+      console.log("API response:", data); // لمراقبة الرد من F12
+
       const imageUrl = data.imageUrl || data.image_url;
 
       if (!data.ok || !imageUrl) {
