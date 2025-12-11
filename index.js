@@ -103,7 +103,7 @@ app.post("/api/gw/image", (req, res) => {
   }
 });
 
-// ===== 6) راوت الذكاء الاصطناعي لتوليد صورة ثوب =====
+// ===== 6) راوت جديد يستخدم OpenAI لتوليد صورة ثوب =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
     const description = req.body.description || "";
@@ -122,28 +122,37 @@ Traditional yet modern style, suitable for an online shop.
 User description (Arabic or English): ${description}
 `;
 
+    // نطلب الصورة من OpenAI
     const result = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
-      // ما حددنا response_format → الديفولت بيرجع URL
+      // ما بنبعت response_format عشان ما يعترض
     });
 
-    const imageUrl =
-      result &&
-      result.data &&
-      result.data[0] &&
-      result.data[0].url;
+    const imgObj = (result.data && result.data[0]) || {};
+    console.log("OpenAI image keys:", Object.keys(imgObj));
+
+    let imageUrl = null;
+
+    // 1) لو رجع رابط جاهز
+    if (imgObj.url) {
+      imageUrl = imgObj.url;
+    }
+    // 2) لو رجع base64 فقط
+    else if (imgObj.b64_json) {
+      imageUrl = `data:image/png;base64,${imgObj.b64_json}`;
+    }
 
     if (!imageUrl) {
-      console.error("No image URL in OpenAI response:", JSON.stringify(result, null, 2));
+      console.error("NO url or b64_json in image result:", imgObj);
       return res.status(500).json({
         ok: false,
-        error: "لم يتم استلام رابط الصورة من نموذج الذكاء الاصطناعي.",
+        error: "لم يتم استلام بيانات صالحة للصورة من نموذج الذكاء الاصطناعي.",
       });
     }
 
-    // نرجّع رابط الصورة مباشرة
+    // نرجّع imageUrl واحد فقط (ممكن يكون رابط https أو data:)
     return res.json({
       ok: true,
       description,
