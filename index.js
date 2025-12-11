@@ -8,7 +8,7 @@ const path = require("path");
 // 🔹 مكتبة OpenAI
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // تأكدي إنه موجود في Render
+  apiKey: process.env.OPENAI_API_KEY, // لازم تكون مضافة في Render
 });
 
 // تحميل "قاعدة البيانات" rule-based من ملف JSON
@@ -81,7 +81,7 @@ function mapJsonToImage(parsedJson) {
   };
 }
 
-// ===== 5) الراوت rule-based القديم (اختياري) =====
+// ===== 5) الراوت rule-based القديم (لو حبيتي تستخدميه) =====
 app.post("/api/gw/image", (req, res) => {
   try {
     const description = req.body.description || "";
@@ -103,12 +103,12 @@ app.post("/api/gw/image", (req, res) => {
   }
 });
 
-// ===== 6) راوت الذكاء الاصطناعي لتوليد الثوب =====
+// ===== 6) راوت الذكاء الاصطناعي لتوليد صورة ثوب =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
-    const description = (req.body.description || "").trim();
+    const description = req.body.description || "";
 
-    if (!description) {
+    if (!description.trim()) {
       return res.status(400).json({
         ok: false,
         error: "الرجاء إدخال وصف للثوب",
@@ -122,29 +122,32 @@ Traditional yet modern style, suitable for an online shop.
 User description (Arabic or English): ${description}
 `;
 
-    // 🔥 نطلب صورة واحدة من OpenAI، ونرجّع الرابط كما هو
     const result = await openai.images.generate({
-      // لو مكتبة OpenAI عندك قديمة جرّبي تغيير الموديل لـ "dall-e-3"
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
-      n: 1,
+      // ما حددنا response_format → الديفولت بيرجع URL
     });
 
-    if (!result.data || !result.data[0] || !result.data[0].url) {
-      console.error("No URL returned from OpenAI:", result);
+    const imageUrl =
+      result &&
+      result.data &&
+      result.data[0] &&
+      result.data[0].url;
+
+    if (!imageUrl) {
+      console.error("No image URL in OpenAI response:", JSON.stringify(result, null, 2));
       return res.status(500).json({
         ok: false,
-        error: "لم يتم استلام رابط الصورة من OpenAI.",
+        error: "لم يتم استلام رابط الصورة من نموذج الذكاء الاصطناعي.",
       });
     }
 
-    const imageUrl = result.data[0].url;
-
+    // نرجّع رابط الصورة مباشرة
     return res.json({
       ok: true,
       description,
-      imageUrl, // الفرونت سيستخدم هذا مباشرة في <img>
+      imageUrl,
     });
   } catch (error) {
     console.error("Error in /api/gw/generate-dress:", error);
