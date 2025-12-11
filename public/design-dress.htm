@@ -4,189 +4,410 @@
   <meta charset="UTF-8" />
   <title>صمّم ثوبك بالتطريز</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #faf5ff;
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f2ff;
+      color: #1f1235;
       direction: rtl;
+      text-align: right;
+      padding: 32px 16px;
     }
 
     .wrapper {
-      max-width: 700px;
-      margin: 40px auto;
+      max-width: 900px;
+      margin: 0 auto;
       background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-      padding: 24px 20px 28px;
+      border-radius: 24px;
+      box-shadow: 0 18px 60px rgba(31, 18, 53, 0.08);
+      padding: 32px 24px 28px;
     }
 
-    h1 {
-      margin-top: 0;
-      text-align: center;
-      color: #4c1d95;
+    @media (min-width: 720px) {
+      .wrapper {
+        padding: 40px 40px 32px;
+      }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: space-between;
+    }
+
+    .title {
+      font-size: 1.7rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #381460;
+    }
+
+    .title-icon {
       font-size: 1.6rem;
     }
 
-    p.subtitle {
-      text-align: center;
-      color: #6b7280;
-      margin-top: 0;
-      margin-bottom: 24px;
-      font-size: 0.95rem;
+    .hint {
+      font-size: 0.9rem;
+      color: #7b7b9c;
+      margin-bottom: 16px;
     }
 
-    label {
-      display: block;
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 12px;
+    }
+
+    .label-row span {
       font-weight: 600;
-      margin-bottom: 6px;
-      color: #374151;
+      font-size: 0.95rem;
+      color: #40325a;
+    }
+
+    .char-counter {
+      font-size: 0.8rem;
+      color: #9991b8;
     }
 
     textarea {
       width: 100%;
-      min-height: 110px;
-      border-radius: 10px;
-      border: 1px solid #d1d5db;
-      padding: 10px 12px;
+      min-height: 140px;
       resize: vertical;
-      font-size: 0.95rem;
-      font-family: inherit;
-      box-sizing: border-box;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #e0d6ff;
+      font-size: 0.98rem;
+      line-height: 1.8;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      background: #fbf9ff;
     }
 
     textarea:focus {
-      outline: none;
       border-color: #7c3aed;
-      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.18);
+      box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.08);
+      background: #ffffff;
+    }
+
+    textarea::placeholder {
+      color: #b4a8dd;
     }
 
     .actions {
-      margin-top: 18px;
       display: flex;
-      gap: 10px;
       align-items: center;
+      justify-content: flex-start;
+      margin-top: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    button {
+    .generate-btn {
       border: none;
+      outline: none;
       border-radius: 999px;
-      padding: 9px 22px;
+      padding: 10px 26px;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      color: #ffffff;
+      font-weight: 700;
       font-size: 0.98rem;
       cursor: pointer;
-      background: linear-gradient(135deg, #7c3aed, #ec4899);
-      color: #fff;
-      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.35);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s;
     }
 
-    button:disabled {
-      opacity: 0.55;
-      cursor: wait;
+    .generate-btn:disabled {
+      opacity: 0.7;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
     }
 
-    .status.error {
+    .generate-btn:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 13px 30px rgba(139, 92, 246, 0.4);
+    }
+
+    .loading-dot {
+      width: 5px;
+      height: 5px;
+      background: #fff;
+      border-radius: 50%;
+      animation: blink 0.9s infinite alternate;
+    }
+
+    @keyframes blink {
+      from { opacity: 0.3; transform: translateY(1px); }
+      to   { opacity: 1;   transform: translateY(-1px); }
+    }
+
+    .status-text {
+      font-size: 0.86rem;
+      color: #9186c8;
+    }
+
+    .error-box {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
       color: #b91c1c;
+      font-size: 0.9rem;
+      display: none;
+      align-items: center;
+      gap: 6px;
     }
 
-    .result {
-      margin-top: 26px;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 18px;
+    .error-box strong {
+      font-size: 1.1rem;
     }
 
-    .result img {
-      max-width: 100%;
-      border-radius: 16px;
-      border: 1px solid #e5e7eb;
-      display: block;
+    .preview {
+      margin-top: 24px;
+      border-top: 1px dashed #e4ddff;
+      padding-top: 20px;
+    }
+
+    .preview-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #554271;
       margin-bottom: 10px;
+    }
+
+    .preview-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .image-wrapper {
+      border-radius: 18px;
+      background: linear-gradient(145deg, #f9f5ff, #fdfbff);
+      border: 1px solid #e4ddff;
+      padding: 10px;
+      display: none;
+    }
+
+    .image-wrapper img {
+      display: block;
+      width: 100%;
+      border-radius: 14px;
+      background: #f1ebff;
+    }
+
+    .parsed-box {
+      font-size: 0.85rem;
+      color: #8175b5;
+      background: #faf7ff;
+      border-radius: 14px;
+      padding: 10px 12px;
+      border: 1px dashed #ded3ff;
+      white-space: pre-line;
+    }
+
+    .parsed-label {
+      font-weight: 600;
+      color: #5b4a94;
+      margin-left: 4px;
     }
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <h1>صمّم ثوبك بالتطريز ✨</h1>
+  <main class="wrapper">
+    <header class="header">
+      <div class="title">
+        <span class="title-icon">✨</span>
+        <span>صمّم ثوبك بالتطريز</span>
+      </div>
+    </header>
 
-    <label for="description">وصف الثوب</label>
-    <textarea id="description" placeholder="مثال: ثوب أحمر طويل بتطريز فلسطيني أسود وذهبي..."></textarea>
+    <p class="hint">
+      اكتبي وصفاً للثوب الذي تتخيليه (اللون، نوع التطريز، طول الأكمام، تفاصيل مميّزة…)
+      ثم اضغطي <strong>Generate</strong> لنولّد لك صورة تقريبية.
+    </p>
 
-    <div class="actions">
-      <button id="generateBtn">
-        <span>Generate</span>
-        <span id="spinner" style="display:none;">⏳</span>
-      </button>
-      <div id="status"></div>
-    </div>
+    <form id="dress-form">
+      <div class="label-row">
+        <span>وصف الثوب</span>
+        <span class="char-counter"><span id="char-count">0</span> / 400 حرف</span>
+      </div>
 
-    <div id="result" class="result" style="display:none;">
-      <h2>النتيجة 🎨</h2>
-      <img id="resultImage" src="" alt="dress design"/>
-      <pre id="debug"></pre>
-    </div>
-  </div>
+      <textarea
+        id="description"
+        maxlength="400"
+        placeholder="مثال: ثوب فلسطيني أحمر داكن مطرّز بخيوط ذهبية على الأكمام والصدر، مع ياقة على شكل V وخطوط تراثية من منطقة القدس."></textarea>
+
+      <div class="actions">
+        <button type="submit" class="generate-btn" id="generate-btn">
+          <span>Generate</span>
+          <span class="loading-dot" id="loading-dot" style="display:none;"></span>
+        </button>
+        <div class="status-text" id="status-text">
+          جاهز لإنشاء تصميمك 🌟
+        </div>
+      </div>
+
+      <div class="error-box" id="error-box">
+        <strong>✖</strong>
+        <span id="error-message"></span>
+      </div>
+    </form>
+
+    <section class="preview">
+      <div class="preview-title">النتيجة</div>
+
+      <div class="preview-inner">
+        <div class="image-wrapper" id="image-wrapper">
+          <img id="dress-image" alt="صورة الثوب الناتجة من الوصف" />
+        </div>
+
+        <div class="parsed-box" id="parsed-box" style="display:none;">
+          <span class="parsed-label">تحليل الوصف:</span>
+          <span id="parsed-text"></span>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    const API_URL = "https://ghuzrat-watan-ai.onrender.com/api/gw/generate-dress";
+    const form = document.getElementById('dress-form');
+    const descriptionInput = document.getElementById('description');
+    const charCountSpan = document.getElementById('char-count');
+    const generateBtn = document.getElementById('generate-btn');
+    const loadingDot = document.getElementById('loading-dot');
+    const statusText = document.getElementById('status-text');
+    const errorBox = document.getElementById('error-box');
+    const errorMessage = document.getElementById('error-message');
+    const imageWrapper = document.getElementById('image-wrapper');
+    const dressImage = document.getElementById('dress-image');
+    const parsedBox = document.getElementById('parsed-box');
+    const parsedText = document.getElementById('parsed-text');
 
-    const desc = document.getElementById("description");
-    const btn = document.getElementById("generateBtn");
-    const spin = document.getElementById("spinner");
-    const status = document.getElementById("status");
-    const result = document.getElementById("result");
-    const img = document.getElementById("resultImage");
-    const debug = document.getElementById("debug");
-
-    async function generateDress() {
-      const d = desc.value.trim();
-
-      status.textContent = "";
-      status.classList.remove("error");
-
-      if (!d) {
-        status.textContent = "⚠️ الرجاء كتابة وصف للثوب";
-        status.classList.add("error");
-        return;
-      }
-
-      btn.disabled = true;
-      spin.style.display = "inline-block";
-      status.textContent = "⏳ جاري إنشاء الصورة...";
-
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ description: d })
-        });
-
-        const data = await res.json();
-        debug.textContent = JSON.stringify(data, null, 2);
-
-        if (!data.ok) throw new Error(data.error);
-
-        let imageUrl =
-          data?.image?.url ||
-          data?.image?.image_url ||
-          data?.image_url ||
-          "";
-
-        if (!imageUrl) throw new Error("لا يوجد رابط صورة في الرد.");
-
-        img.src = imageUrl;
-        result.style.display = "block";
-        status.textContent = "✔️ تم إنشاء الصورة بنجاح";
-
-      } catch (err) {
-        status.textContent = "❌ خطأ: " + err.message;
-        status.classList.add("error");
-      } finally {
-        btn.disabled = false;
-        spin.style.display = "none";
+    function setLoading(isLoading) {
+      if (isLoading) {
+        generateBtn.disabled = true;
+        loadingDot.style.display = 'inline-block';
+        generateBtn.firstElementChild.textContent = 'جاري الإنشاء...';
+        statusText.textContent = 'جارٍ التواصل مع نموذج الذكاء الاصطناعي وإنشاء الصورة، قد يستغرق هذا بضع ثوانٍ...';
+      } else {
+        generateBtn.disabled = false;
+        loadingDot.style.display = 'none';
+        generateBtn.firstElementChild.textContent = 'Generate';
+        statusText.textContent = 'جاهز لإنشاء تصميمك 🌟';
       }
     }
 
-    btn.onclick = generateDress;
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorBox.style.display = 'flex';
+    }
+
+    function clearError() {
+      errorMessage.textContent = '';
+      errorBox.style.display = 'none';
+    }
+
+    descriptionInput.addEventListener('input', () => {
+      charCountSpan.textContent = descriptionInput.value.length.toString();
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearError();
+      imageWrapper.style.display = 'none';
+      parsedBox.style.display = 'none';
+
+      const description = descriptionInput.value.trim();
+
+      if (!description) {
+        showError('أرجوك اكتبي وصفاً للثوب أولاً.');
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await fetch('/api/gw/generate-dress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description })
+        });
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseErr) {
+          console.error('Failed to parse JSON:', parseErr);
+          showError('تعذر قراءة استجابة الخادم. حاولي مرة أخرى بعد قليل.');
+          return;
+        }
+
+        if (!response.ok) {
+          console.error('Non-OK HTTP status:', response.status, data);
+          showError(data && data.error ? data.error : 'حدث خطأ من الخادم أثناء إنشاء الصورة.');
+          return;
+        }
+
+        if (data && data.ok === false) {
+          // الخادم أرجع ok:false مع رسالة
+          showError(data.error || 'تعذر إنشاء صورة مناسبة لهذا الوصف.');
+          return;
+        }
+
+        // استخراج رابط الصورة بعدة احتمالات
+        const imageUrl =
+          (data.image && data.image.url) ||
+          data.image_url ||
+          (Array.isArray(data.images) && data.images[0] && data.images[0].url) ||
+          null;
+
+        if (!imageUrl) {
+          console.error('No image URL in response:', data);
+          showError('فشل في إنشاء الصورة لهذا الوصف، حاولي تبسيط الوصف أو تغيير بعض الكلمات.');
+          return;
+        }
+
+        // عرض الصورة
+        dressImage.src = imageUrl;
+        imageWrapper.style.display = 'block';
+
+        // لو فيه تحليل للنص من الخادم
+        if (data.parsed && data.parsed.raw_text) {
+          parsedText.textContent = data.parsed.raw_text;
+          parsedBox.style.display = 'block';
+        } else if (data.description) {
+          parsedText.textContent = data.description;
+          parsedBox.style.display = 'block';
+        } else {
+          parsedBox.style.display = 'none';
+        }
+
+        statusText.textContent = 'تم إنشاء صورة تقريبية بناءً على وصفك ✅';
+      } catch (err) {
+        console.error('Request error:', err);
+        showError('تعذر الاتصال بالخادم، تأكدي من الاتصال بالإنترنت وحاولي مرة أخرى.');
+      } finally {
+        setLoading(false);
+      }
+    });
   </script>
 </body>
 </html>
