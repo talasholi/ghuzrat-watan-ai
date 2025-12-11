@@ -5,14 +5,13 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const path = require("path");
 
-// 🔹 مكتبة OpenAI (الـ SDK الجديد)
+// ===== 1.1 مكتبة OpenAI (الإصدار الجديد v4) =====
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // لازم تكون مضافة في Render
+  apiKey: process.env.OPENAI_API_KEY, // تأكدي موجود في Render
 });
 
 // تحميل "قاعدة البيانات" rule-based من ملف JSON
-// حاوي معلومات: الكلمة المفتاحيّة -> صورة مناسبة
 const dbPath = path.join(__dirname, "database.json");
 const db = JSON.parse(fs.readFileSync(dbPath, "utf8"));
 
@@ -22,29 +21,40 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔊 إتاحة ملفات static من فولدر public (مثل /audio, /images, /design-dress.htm ...)
+// ملفات static من public
 const publicPath = path.join(__dirname, "public");
 app.use(express.static(publicPath));
 
-// أسماء "الموديلات" (شكلية عشان المنظر بس 😄)
+// أسماء شكلية للموديلات
 const TEXT_MODEL_NAME = "gw-simple-parser-v1";
 const IMAGE_MODEL_NAME = "gw-static-mapper-v1";
 
 // ===== 3) دالة: تحويل وصف المستخدم إلى JSON منظم =====
 function parseDescriptionToJson(description) {
   const text = (description || "").toLowerCase();
-
   const keywords = [];
 
-  if (text.includes("thobe") || text.includes("thawb") || text.includes("dress")) {
+  if (
+    text.includes("thobe") ||
+    text.includes("thawb") ||
+    text.includes("dress")
+  ) {
     keywords.push("thobe");
   }
-  if (text.includes("red")) keywords.push("red");
-  if (text.includes("black")) keywords.push("black");
-  if (text.includes("bag")) keywords.push("bag");
-  if (text.includes("necklace") || text.includes("accessory"))
+  if (text.includes("red") || text.includes("احمر") || text.includes("أحمر"))
+    keywords.push("red");
+  if (text.includes("black") || text.includes("اسود") || text.includes("أسود"))
+    keywords.push("black");
+  if (text.includes("bag") || text.includes("حقيبة") || text.includes("شنطة"))
+    keywords.push("bag");
+  if (
+    text.includes("necklace") ||
+    text.includes("accessory") ||
+    text.includes("اكسسوار") ||
+    text.includes("إكسسوار")
+  )
     keywords.push("accessory");
-  if (text.includes("tatreez") || text.includes("embroidery"))
+  if (text.includes("tatreez") || text.includes("تطريز") || text.includes("مطرز"))
     keywords.push("tatreez");
 
   return {
@@ -54,11 +64,10 @@ function parseDescriptionToJson(description) {
   };
 }
 
-// ===== 4) دالة: اختيار صورة مناسبة من "قاعدة البيانات" =====
+// ===== 4) دالة: اختيار صورة من database.json =====
 function mapJsonToImage(parsedJson) {
   const { keywords } = parsedJson;
 
-  // نحاول نطابق أول keyword موجودة في db
   for (const kw of keywords) {
     if (db[kw]) {
       return {
@@ -70,7 +79,6 @@ function mapJsonToImage(parsedJson) {
     }
   }
 
-  // لو ما لقينا إشي، نرجع صورة افتراضية
   return {
     model: IMAGE_MODEL_NAME,
     keyword_matched: null,
@@ -81,7 +89,7 @@ function mapJsonToImage(parsedJson) {
   };
 }
 
-// ===== 5) الراوت rule-based القديم (يختار من database.json) =====
+// ===== 5) الراوت القديم rule-based (احتياط / باك أب) =====
 app.post("/api/gw/image", (req, res) => {
   try {
     const description = req.body.description || "";
@@ -95,7 +103,7 @@ app.post("/api/gw/image", (req, res) => {
       image: imageResult,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error in /api/gw/image:", err);
     return res.status(500).json({
       ok: false,
       error: "Internal server error",
@@ -103,7 +111,7 @@ app.post("/api/gw/image", (req, res) => {
   }
 });
 
-// ===== 6) راوت جديد: توليد صورة ثوب باستخدام gpt-image-1 =====
+// ===== 6) الراوت الجديد: توليد صورة بالذكاء الاصطناعي =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
     const description = req.body.description || "";
@@ -122,24 +130,26 @@ Traditional yet modern style, suitable for an online shop.
 User description (Arabic or English): ${description}
 `;
 
+    // ⚠️ مهم: لا يوجد هنا response_format نهائياً
     const result = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
-      response_format: "b64_json", // مهم: نأخذها Base64
+      // لا تضعي response_format هنا
     });
 
-    const imageBase64 = result.data?.[0]?.b64_json;
+    console.log("OpenAI images.generate raw result:", JSON.stringify(result, null, 2));
 
-    if (!imageBase64) {
+    const first = result.data && result.data[0];
+    const imageUrl = first && (first.url || first.b64_json || first.image_url);
+
+    if (!imageUrl) {
+      console.error("No image URL in OpenAI response:", result);
       return res.status(500).json({
         ok: false,
         error: "فشل في الحصول على رابط الصورة من نموذج الذكاء الاصطناعي.",
       });
     }
-
-    // نحولها لرابط data URL جاهز للـ <img src="...">
-    const imageUrl = `data:image/png;base64,${imageBase64}`;
 
     return res.json({
       ok: true,
@@ -147,20 +157,20 @@ User description (Arabic or English): ${description}
       imageUrl,
     });
   } catch (error) {
-    console.error("Error in /api/gw/generate-dress:", error);
+    console.error("Error in /api/gw/generate-dress:", error?.response?.data || error);
     return res.status(500).json({
       ok: false,
-      error: "فشل في إنشاء الصورة، حاولي مرة أخرى لاحقًا.",
+      error: "فشل في إنشاء الصورة، حاولي مرة أخرى لاحقاً.",
     });
   }
 });
 
-// ===== راوت بسيط للفحص =====
+// ===== 7) راوت بسيط للفحص =====
 app.get("/", (req, res) => {
   res.send("Ghuzrat Watan AI API is running ✅");
 });
 
-// ===== 7) تشغيل السيرفر =====
+// ===== 8) تشغيل السيرفر =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
