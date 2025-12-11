@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const path = require("path");
 
-// 🔹 مكتبة OpenAI
+// 🔹 مكتبة OpenAI (الـ SDK الجديد)
 const OpenAI = require("openai");
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // لازم تكون مضافة في Render
@@ -22,7 +22,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔊 مهم: إتاحة ملفات static من فولدر public (مثل /audio, /images... /design-dress.htm)
+// 🔊 إتاحة ملفات static من فولدر public (مثل /audio, /images, /design-dress.htm ...)
 const publicPath = path.join(__dirname, "public");
 app.use(express.static(publicPath));
 
@@ -34,14 +34,9 @@ const IMAGE_MODEL_NAME = "gw-static-mapper-v1";
 function parseDescriptionToJson(description) {
   const text = (description || "").toLowerCase();
 
-  // مثال بسيط: نستخرج كلمات مفتاحية
   const keywords = [];
 
-  if (
-    text.includes("thobe") ||
-    text.includes("thawb") ||
-    text.includes("dress")
-  ) {
+  if (text.includes("thobe") || text.includes("thawb") || text.includes("dress")) {
     keywords.push("thobe");
   }
   if (text.includes("red")) keywords.push("red");
@@ -86,8 +81,7 @@ function mapJsonToImage(parsedJson) {
   };
 }
 
-// ===== 5) الراوت rule-based القديم (من database.json) =====
-// /api/gw/image  ← هذا يختار صورة من database.json
+// ===== 5) الراوت rule-based القديم (يختار من database.json) =====
 app.post("/api/gw/image", (req, res) => {
   try {
     const description = req.body.description || "";
@@ -98,7 +92,7 @@ app.post("/api/gw/image", (req, res) => {
       ok: true,
       description,
       parsed,
-      image: imageResult, // image.image_url داخلها
+      image: imageResult,
     });
   } catch (err) {
     console.error(err);
@@ -109,7 +103,7 @@ app.post("/api/gw/image", (req, res) => {
   }
 });
 
-// ===== 6) راوت جديد يستخدم OpenAI لتوليد صورة من الوصف =====
+// ===== 6) راوت جديد: توليد صورة ثوب باستخدام gpt-image-1 =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
     const description = req.body.description || "";
@@ -120,9 +114,6 @@ app.post("/api/gw/generate-dress", async (req, res) => {
         error: "الرجاء إدخال وصف للثوب",
       });
     }
-
-    // ممكن نستفيد من نفس الـ parser عشان نرجع تحليلاً في الواجهة
-    const parsed = parseDescriptionToJson(description);
 
     const prompt = `
 High-quality fashion illustration of a modest Palestinian embroidered dress.
@@ -135,60 +126,36 @@ User description (Arabic or English): ${description}
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
+      response_format: "b64_json", // مهم: نأخذها Base64
     });
 
-    const imageUrl =
-      result &&
-      result.data &&
-      result.data[0] &&
-      (result.data[0].url || result.data[0].url === "" ? result.data[0].url : null);
+    const imageBase64 = result.data?.[0]?.b64_json;
 
-    if (!imageUrl) {
-      console.error("No image URL returned from OpenAI:", result);
+    if (!imageBase64) {
       return res.status(500).json({
         ok: false,
         error: "فشل في الحصول على رابط الصورة من نموذج الذكاء الاصطناعي.",
       });
     }
 
-    // نرجّع عدّة أشكال لنفس الرابط عشان أي واجهة تشتغل:
-    // - image.url
-    // - image_url
-    // - imageUrl
-    // - images[0].url (اختياري)
+    // نحولها لرابط data URL جاهز للـ <img src="...">
+    const imageUrl = `data:image/png;base64,${imageBase64}`;
+
     return res.json({
       ok: true,
       description,
-      parsed,
-      imageUrl, // camelCase
-      image_url: imageUrl, // snake_case
-      image: {
-        model: "gpt-image-1",
-        url: imageUrl,
-      },
-      images: [
-        {
-          url: imageUrl,
-        },
-      ],
+      imageUrl,
     });
   } catch (error) {
     console.error("Error in /api/gw/generate-dress:", error);
-
-    // نحاول نرجّع رسالة أوضح لو من OpenAI
-    let msg = "فشل في إنشاء الصورة، حاولي مرة أخرى لاحقًا.";
-    if (error && error.error && error.error.message) {
-      msg = "خطأ من مزود النموذج: " + error.error.message;
-    }
-
     return res.status(500).json({
       ok: false,
-      error: msg,
+      error: "فشل في إنشاء الصورة، حاولي مرة أخرى لاحقًا.",
     });
   }
 });
 
-// راوت بسيط للفحص
+// ===== راوت بسيط للفحص =====
 app.get("/", (req, res) => {
   res.send("Ghuzrat Watan AI API is running ✅");
 });
