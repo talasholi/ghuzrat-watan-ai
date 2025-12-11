@@ -106,9 +106,9 @@ app.post("/api/gw/image", (req, res) => {
 // ===== 6) راوت جديد يستخدم OpenAI + يرجّع data URL جاهزة =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
-    const description = req.body.description || "";
+    const description = (req.body.description || "").trim();
 
-    if (!description.trim()) {
+    if (!description) {
       return res.status(400).json({
         ok: false,
         error: "الرجاء إدخال وصف للثوب",
@@ -122,35 +122,28 @@ Traditional yet modern style, suitable for an online shop.
 User description (Arabic or English): ${description}
 `;
 
-    // 1) نطلب الصورة من OpenAI (كرابط)
+    // ✅ نطلب الصورة من OpenAI بصيغة base64
     const result = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
+      n: 1,
+      response_format: "b64_json",
     });
 
-    const imageUrl = result.data[0].url;
-
-    // 2) نجيب الصورة من هذا الرابط ونحوّلها لـ base64
-    const imgResponse = await fetch(imageUrl);
-    if (!imgResponse.ok) {
-      console.error("Image fetch failed:", imgResponse.status);
-      return res.status(500).json({
-        ok: false,
-        error: "فشل في تحميل الصورة من خادم الصور.",
-      });
+    if (!result.data || !result.data[0] || !result.data[0].b64_json) {
+      throw new Error("لم يتم استلام بيانات الصورة من OpenAI");
     }
 
-    const arrayBuffer = await imgResponse.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const base64 = result.data[0].b64_json;
     const dataUrl = `data:image/png;base64,${base64}`;
 
-    // نرجّع: الرابط الأصلي + dataUrl الجاهزة للعرض
+    // نرجّع dataUrl في imageUrl عشان الـ front-end يستخدمه مباشرة
     return res.json({
       ok: true,
       description,
-      imageUrl, // لو احتجناه لاحقًا
-      dataUrl,  // اللي رح نستخدمه في <img>
+      imageUrl: dataUrl,
+      dataUrl,
     });
   } catch (error) {
     console.error("Error in /api/gw/generate-dress:", error);
