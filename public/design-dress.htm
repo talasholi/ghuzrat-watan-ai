@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>صممي ثوبك بالتطريز</title>
+  <title>صمّم/ي ثوبك بالتطريز</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     /* ====== RESET بسيط ====== */
@@ -329,7 +329,8 @@
       color: #6b5b91;
     }
 
-    .download-btn {
+    /* زر الذهاب لصفحة تواصل معنا */
+    .contact-btn {
       border-radius: 999px;
       border: none;
       font-size: 11px;
@@ -343,20 +344,20 @@
       box-shadow: 0 5px 15px rgba(133, 101, 220, 0.35);
       transition: transform 0.12s ease, box-shadow 0.12s ease;
       white-space: nowrap;
-      text-decoration: none; /* مهم عشان اللينك يبين كبطن */
+      text-decoration: none;
     }
 
-    .download-btn:hover {
+    .contact-btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 7px 20px rgba(133, 101, 220, 0.42);
     }
 
-    .download-btn:active {
+    .contact-btn:active {
       transform: translateY(1px) scale(0.98);
       box-shadow: 0 5px 12px rgba(133, 101, 220, 0.35);
     }
 
-    .download-btn span.icon {
+    .contact-btn span.icon {
       font-size: 13px;
     }
 
@@ -380,6 +381,22 @@
       background: rgba(141, 102, 255, 0.08);
       border: 1px solid rgba(141, 102, 255, 0.2);
       color: #6c4cc1;
+    }
+
+    /* بوكس تعليمات بعد الصور */
+    .after-note {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(246, 240, 255, 0.85);
+      border: 1px dashed rgba(173, 142, 230, 0.9);
+      font-size: 13px;
+      color: #6a5b95;
+      line-height: 1.8;
+    }
+
+    .after-note b {
+      color: #4a337e;
     }
 
     /* سكيليتون تحميل */
@@ -451,9 +468,9 @@
         <span class="sparkle">✨</span>
         <span>نموذج تجريبي – غُرزة وطن AI</span>
       </div>
-      <h1>صممي ثوبك <span style="color:#b54ea9;">بالتطريز</span></h1>
+      <h1>صمّم/ي ثوبك <span style="color:#b54ea9;">بالتطريز</span></h1>
       <p class="subtitle">
-        اكتبي وصـفًا للثوب الذي تتخيليه (اللّون، نوع التطريز، طول الأكمام، تفاصيل مميّزة...) ثم اضغطي
+        اكتب/ي وصـفًا للثوب الذي تتخيّله (اللّون، نوع التطريز، طول الأكمام، تفاصيل مميّزة...) ثم اضغط/ي
         <b>Generate</b> ليتم توليد صورتين تخيّليتين للثوب ✨
       </p>
     </header>
@@ -477,7 +494,7 @@
 
         <div class="actions-row">
           <p class="hint">
-            كلّما كان الوصف أدقّ (ألوان، طول الثوب، نوع التطريز، تفاصيل خاصة)، كانت النتيجة أقرب لما تتخيّلينه ✨
+            كلّما كان الوصف أدقّ (ألوان، طول الثوب، نوع التطريز، تفاصيل خاصة)، كانت النتيجة أقرب لما تتخيّله ✨
           </p>
 
           <button id="generateBtn">
@@ -500,7 +517,7 @@
           <div class="empty-state">
             <span class="badge">💡 نصيحة</span>
             <span>
-              ابدئي بوصف بسيط، ثم جرّبي تغييرات صغيرة (مثلاً غيّري الألوان أو نوع التطريز) لتشاهدي أكثر من اقتراح للثوب.
+              ابدأ/ي بوصف بسيط، ثم جرّب/ي تغييرات صغيرة (مثلاً غيّر/ي الألوان أو نوع التطريز) لتشاهد/ي أكثر من اقتراح للثوب.
             </span>
           </div>
         </div>
@@ -516,6 +533,7 @@
     const resultsArea = document.getElementById("resultsArea");
 
     const MAX_LEN = 400;
+    const CONTACT_BASE = "https://ghuzrat-watan.company.site/new-page-4";
 
     // تحديث عداد الأحرف
     function updateCharCounter() {
@@ -547,7 +565,7 @@
       if (type) statusText.classList.add(type);
     }
 
-    // ✅ هنا التعديل المهم: نستخدم <a> كرابط فتح/تحميل
+    // إنشاء بطاقة صورة + زر طلب التصميم
     function createImageCard(url, index) {
       const card = document.createElement("div");
       card.className = "image-card";
@@ -568,17 +586,20 @@
       caption.className = "image-caption";
       caption.textContent = "تصميم ثوب بالتطريز #" + (index + 1);
 
-      // رابط بدل زر + خصائص فتح/تحميل
-      const link = document.createElement("a");
-      link.className = "download-btn";
-      link.href = url;
-      link.target = "_blank";          // يفتح في تبويب جديد
-      link.rel = "noopener";           // أمان
-      link.download = "gw-dress-" + (index + 1) + ".png"; // محاولة تحميل مباشر
-      link.innerHTML = '<span class="icon">⬇️</span><span>فتح / حفظ</span>';
+      // عنوان فيه رقم التصميم يروح مع الرابط
+      const designParam = "design=" + encodeURIComponent("thobe-" + (index + 1));
+      const contactUrl = CONTACT_BASE + "?" + designParam;
+
+      const contactLink = document.createElement("a");
+      contactLink.className = "contact-btn";
+      contactLink.href = contactUrl;
+      // _top عشان يطلع من iframe ويفتح صفحة تواصل معنا في كل الموقع
+      contactLink.target = "_top";
+      contactLink.rel = "noopener";
+      contactLink.innerHTML = '<span class="icon">📩</span><span>طلب/ي هذا التصميم</span>';
 
       footer.appendChild(caption);
-      footer.appendChild(link);
+      footer.appendChild(contactLink);
 
       card.appendChild(inner);
       card.appendChild(footer);
@@ -639,19 +660,31 @@
         resultsArea.innerHTML = "";
         resultsArea.appendChild(grid);
 
-        setStatus("تم إنشاء الصورتين بنجاح! يمكنك الضغط على زر فتح / حفظ أسفل كل صورة.", "success");
+        // بوكس تعليمات أسفل الصور
+        const note = document.createElement("div");
+        note.className = "after-note";
+        note.innerHTML = `
+          <b>ما الخطوة التالية؟</b><br />
+          1. اختر/ي التصميم الذي أعجبك أكثر (يمين أو يسار).<br />
+          2. اضغط/ي على زر <b>طلب/ي هذا التصميم</b> أسفل الصورة، وسيتم فتح صفحة "تواصل معنا".<br />
+          3. في نموذج التواصل، اكتب/ي رقم التصميم (مثلاً: تصميم ثوب بالتطريز #1)
+             وأي تعديلات أو مقاسات خاصة تريد/ينها.
+        `;
+        resultsArea.appendChild(note);
+
+        setStatus("تم إنشاء الصورتين بنجاح! إذا أعجبك أحد التصاميم يمكنك طلبه عبر نموذج التواصل.", "success");
       } catch (err) {
         console.error(err);
         resultsArea.innerHTML = `
           <div class="empty-state">
             <span class="badge">⚠️ خطأ</span>
             <span>
-              فشل في استدعاء نموذج الذكاء الاصطناعي أو في استلام الصور. جرّبي مرة أخرى بعد قليل،
-              أو استخدمي وصفًا أقصر / مختلفًا.
+              فشل في استدعاء نموذج الذكاء الاصطناعي أو في استلام الصور. جرّب/ي مرة أخرى بعد قليل،
+              أو استخدم/ي وصفًا أقصر أو مختلفًا.
             </span>
           </div>
         `;
-        setStatus("فشل في إنشاء الصور، حاولي مرة أخرى لاحقًا.", "error");
+        setStatus("فشل في إنشاء الصور، جرّب/ي مرة أخرى لاحقًا.", "error");
       } finally {
         generateBtn.disabled = false;
         generateBtn.innerHTML = "<span>Generate</span>";
