@@ -22,7 +22,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔊 مهم: إتاحة ملفات static من فولدر public (مثل /audio, /images...)
+// 🔊 مهم: إتاحة ملفات static من فولدر public (مثل /audio, /images... /design-dress.htm)
 const publicPath = path.join(__dirname, "public");
 app.use(express.static(publicPath));
 
@@ -86,7 +86,7 @@ function mapJsonToImage(parsedJson) {
   };
 }
 
-// ===== 5) الراوت الرئيسي القديم (rule-based) =====
+// ===== 5) الراوت rule-based القديم (من database.json) =====
 // /api/gw/image  ← هذا يختار صورة من database.json
 app.post("/api/gw/image", (req, res) => {
   try {
@@ -98,7 +98,7 @@ app.post("/api/gw/image", (req, res) => {
       ok: true,
       description,
       parsed,
-      image: imageResult,
+      image: imageResult, // image.image_url داخلها
     });
   } catch (err) {
     console.error(err);
@@ -121,6 +121,9 @@ app.post("/api/gw/generate-dress", async (req, res) => {
       });
     }
 
+    // ممكن نستفيد من نفس الـ parser عشان نرجع تحليلاً في الواجهة
+    const parsed = parseDescriptionToJson(description);
+
     const prompt = `
 High-quality fashion illustration of a modest Palestinian embroidered dress.
 Full dress visible, front view, neutral background, no face details.
@@ -134,18 +137,53 @@ User description (Arabic or English): ${description}
       size: "1024x1024",
     });
 
-    const imageUrl = result.data[0].url;
+    const imageUrl =
+      result &&
+      result.data &&
+      result.data[0] &&
+      (result.data[0].url || result.data[0].url === "" ? result.data[0].url : null);
 
+    if (!imageUrl) {
+      console.error("No image URL returned from OpenAI:", result);
+      return res.status(500).json({
+        ok: false,
+        error: "فشل في الحصول على رابط الصورة من نموذج الذكاء الاصطناعي.",
+      });
+    }
+
+    // نرجّع عدّة أشكال لنفس الرابط عشان أي واجهة تشتغل:
+    // - image.url
+    // - image_url
+    // - imageUrl
+    // - images[0].url (اختياري)
     return res.json({
       ok: true,
       description,
-      imageUrl,
+      parsed,
+      imageUrl, // camelCase
+      image_url: imageUrl, // snake_case
+      image: {
+        model: "gpt-image-1",
+        url: imageUrl,
+      },
+      images: [
+        {
+          url: imageUrl,
+        },
+      ],
     });
   } catch (error) {
     console.error("Error in /api/gw/generate-dress:", error);
+
+    // نحاول نرجّع رسالة أوضح لو من OpenAI
+    let msg = "فشل في إنشاء الصورة، حاولي مرة أخرى لاحقًا.";
+    if (error && error.error && error.error.message) {
+      msg = "خطأ من مزود النموذج: " + error.error.message;
+    }
+
     return res.status(500).json({
       ok: false,
-      error: "فشل في إنشاء الصورة، حاولي مرة أخرى لاحقًا.",
+      error: msg,
     });
   }
 });
