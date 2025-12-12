@@ -74,7 +74,7 @@
     style.textContent =
       "#gw-music-bar {" +
       "  width: 100%;" +
-      "  background: #fbe7dd;" +
+      "  background: #F9F9F9;" +
       "  border-bottom: 1px solid #e2c8ba;" +
       "  font-family: inherit;" +
       "  font-size: 14px;" +
