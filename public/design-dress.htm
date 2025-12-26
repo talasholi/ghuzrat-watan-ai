@@ -565,7 +565,7 @@
       if (type) statusText.classList.add(type);
     }
 
-    // إنشاء بطاقة صورة + زر طلب التصميم
+    // إنشاء بطاقة صورة (بدون زر طلب التصميم)
     function createImageCard(url, index) {
       const card = document.createElement("div");
       card.className = "image-card";
@@ -586,20 +586,7 @@
       caption.className = "image-caption";
       caption.textContent = "تصميم ثوب بالتطريز #" + (index + 1);
 
-      // عنوان فيه رقم التصميم يروح مع الرابط
-      const designParam = "design=" + encodeURIComponent("thobe-" + (index + 1));
-      const contactUrl = CONTACT_BASE + "?" + designParam;
-
-      const contactLink = document.createElement("a");
-      contactLink.className = "contact-btn";
-      contactLink.href = contactUrl;
-      // _top عشان يطلع من iframe ويفتح صفحة تواصل معنا في كل الموقع
-      contactLink.target = "_top";
-      contactLink.rel = "noopener";
-      contactLink.innerHTML = '<span class="icon">📩</span><span>طلب/ي هذا التصميم</span>';
-
       footer.appendChild(caption);
-      footer.appendChild(contactLink);
 
       card.appendChild(inner);
       card.appendChild(footer);
@@ -666,13 +653,12 @@
         note.innerHTML = `
           <b>ما الخطوة التالية؟</b><br />
           1. اختر/ي التصميم الذي أعجبك أكثر (يمين أو يسار).<br />
-          2. اضغط/ي على زر <b>طلب/ي هذا التصميم</b> أسفل الصورة، وسيتم فتح صفحة "تواصل معنا".<br />
-          3. في نموذج التواصل، اكتب/ي رقم التصميم (مثلاً: تصميم ثوب بالتطريز #1)
+          2. في نموذج التواصل، اكتب/ي رقم التصميم (مثلاً: تصميم ثوب بالتطريز #1)
              وأي تعديلات أو مقاسات خاصة تريد/ينها.
         `;
         resultsArea.appendChild(note);
 
-        setStatus("تم إنشاء الصورتين بنجاح! إذا أعجبك أحد التصاميم يمكنك طلبه عبر نموذج التواصل.", "success");
+        setStatus("تم إنشاء الصورتين بنجاح!", "success");
       } catch (err) {
         console.error(err);
         resultsArea.innerHTML = `
