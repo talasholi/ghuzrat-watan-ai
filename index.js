@@ -1,35 +1,28 @@
-// ===== 1) الموديولات الأساسية =====
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const path = require("path");
 
-// 🔹 مكتبة OpenAI
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // لازم تكون مضافة في Render
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// تحميل "قاعدة البيانات" rule-based من ملف JSON
 const dbPath = path.join(__dirname, "database.json");
 const db = JSON.parse(fs.readFileSync(dbPath, "utf8"));
 
-// ===== 2) إعداد التطبيق =====
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔊 إتاحة ملفات static من فولدر public
 const publicPath = path.join(__dirname, "public");
 app.use(express.static(publicPath));
 
-// أسماء "الموديلات" (شكلية)
 const TEXT_MODEL_NAME = "gw-simple-parser-v1";
 const IMAGE_MODEL_NAME = "gw-static-mapper-v1";
 
-// ===== 3) دالة: تحويل وصف المستخدم إلى JSON منظم =====
 function parseDescriptionToJson(description) {
   const text = (description || "").toLowerCase();
   const keywords = [];
@@ -56,7 +49,6 @@ function parseDescriptionToJson(description) {
   };
 }
 
-// ===== 4) دالة: اختيار صورة rule-based من "قاعدة البيانات" =====
 function mapJsonToImage(parsedJson) {
   const { keywords } = parsedJson;
 
@@ -81,7 +73,6 @@ function mapJsonToImage(parsedJson) {
   };
 }
 
-// ===== 5) الراوت rule-based القديم (لو حبيتي تستخدميه) =====
 app.post("/api/gw/image", (req, res) => {
   try {
     const description = req.body.description || "";
@@ -103,7 +94,6 @@ app.post("/api/gw/image", (req, res) => {
   }
 });
 
-// ===== 6) راوت جديد يستخدم OpenAI لتوليد صورة ثوب =====
 app.post("/api/gw/generate-dress", async (req, res) => {
   try {
     const description = req.body.description || "";
@@ -122,12 +112,10 @@ Traditional yet modern style, suitable for an online shop.
 User description (Arabic or English): ${description}
 `;
 
-    // نطلب الصورة من OpenAI
     const result = await openai.images.generate({
       model: "gpt-image-1",
       prompt,
       size: "1024x1024",
-      // ما بنبعت response_format عشان ما يعترض
     });
 
     const imgObj = (result.data && result.data[0]) || {};
@@ -135,12 +123,9 @@ User description (Arabic or English): ${description}
 
     let imageUrl = null;
 
-    // 1) لو رجع رابط جاهز
     if (imgObj.url) {
       imageUrl = imgObj.url;
-    }
-    // 2) لو رجع base64 فقط
-    else if (imgObj.b64_json) {
+    } else if (imgObj.b64_json) {
       imageUrl = `data:image/png;base64,${imgObj.b64_json}`;
     }
 
@@ -152,7 +137,6 @@ User description (Arabic or English): ${description}
       });
     }
 
-    // نرجّع imageUrl واحد فقط (ممكن يكون رابط https أو data:)
     return res.json({
       ok: true,
       description,
@@ -167,12 +151,10 @@ User description (Arabic or English): ${description}
   }
 });
 
-// راوت بسيط للفحص
 app.get("/", (req, res) => {
   res.send("Ghuzrat Watan AI API is running ✅");
 });
 
-// ===== 7) تشغيل السيرفر =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
