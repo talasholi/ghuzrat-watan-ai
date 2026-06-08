@@ -1,5 +1,4 @@
 (function () {
-  // ===== 1) قائمة المقاطع الصوتية =====
   var tracks = [
     {
       title: "موسيقى تراثية 1",
@@ -11,18 +10,17 @@
     }
   ];
 
-  var STORAGE_KEY = "gw-music-state-v5";
+  var STORAGE_KEY = "kanaan-music-state-v1";
 
   function initMusicBar() {
     if (!tracks.length || !window.document || !document.body) return;
 
-    // 🧹 امسح أي شريط قديم لو موجود
-    var oldBar = document.getElementById("gw-music-bar");
-    if (oldBar && oldBar.parentNode) {
-      oldBar.parentNode.removeChild(oldBar);
-    }
+    var oldBar = document.getElementById("kanaan-music-bar");
+    if (oldBar && oldBar.parentNode) oldBar.parentNode.removeChild(oldBar);
 
-    // ===== 2) استرجاع الحالة من localStorage =====
+    var oldBtn = document.getElementById("kanaan-header-music-btn");
+    if (oldBtn && oldBtn.parentNode) oldBtn.parentNode.removeChild(oldBtn);
+
     var savedState = null;
     try {
       savedState = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -30,83 +28,66 @@
       savedState = null;
     }
 
-    var currentIndex = 0;
-    var isPlaying = false;
-    var lastPosition = 0; // زمن آخر نقطة تشغيل بالثواني
+    var currentIndex = savedState && typeof savedState.currentIndex === "number" ? savedState.currentIndex : 0;
+    var isPlaying = savedState && typeof savedState.isPlaying === "boolean" ? savedState.isPlaying : false;
+    var lastPosition = savedState && typeof savedState.position === "number" ? savedState.position : 0;
 
-    if (savedState) {
-      if (typeof savedState.currentIndex === "number") {
-        currentIndex = savedState.currentIndex;
-      }
-      if (typeof savedState.isPlaying === "boolean") {
-        isPlaying = savedState.isPlaying;
-      }
-      if (typeof savedState.position === "number") {
-        lastPosition = savedState.position;
-      }
-    }
-
-    // ===== 3) إنشاء شريط الموسيقى =====
     var bar = document.createElement("div");
-    bar.id = "gw-music-bar";
-    bar.style.display = isPlaying ? "block" : "none"; // لو كانت شغالة قبل، نعرض الشريط
+    bar.id = "kanaan-music-bar";
+    bar.style.display = isPlaying ? "block" : "none";
     bar.innerHTML =
-      '<div class="gw-music-inner">' +
-      '  <div class="gw-music-left">' +
-      '    <strong> موسيقى أرض كنعان</strong>' +
-      '    <span id="gw-music-title"></span>' +
+      '<div class="kanaan-music-inner">' +
+      '  <div class="kanaan-music-left">' +
+      '    <strong>موسيقى أرض كنعان</strong>' +
+      '    <span id="kanaan-music-title"></span>' +
       "  </div>" +
-      '  <div class="gw-music-right">' +
-      '    <button id="gw-music-toggle">▶️ تشغيل</button>' +
-      '    <button id="gw-music-next">🔁 تغيير المقطع</button>' +
-      '    <button id="gw-music-hide">✖️ إخفاء</button>' +
+      '  <div class="kanaan-music-right">' +
+      '    <button id="kanaan-music-toggle">▶️ تشغيل</button>' +
+      '    <button id="kanaan-music-next">🔁 تغيير المقطع</button>' +
+      '    <button id="kanaan-music-hide">✖️ إخفاء</button>' +
       "  </div>" +
       "</div>";
 
-    if (document.body.firstChild) {
-      document.body.insertBefore(bar, document.body.firstChild);
-    } else {
-      document.body.appendChild(bar);
-    }
+    document.body.insertBefore(bar, document.body.firstChild);
 
-    // ===== 4) ستايل الشريط =====
     var style = document.createElement("style");
     style.textContent =
-      "#gw-music-bar {" +
-      "  width: 100%;" +
-      "  background: #F9F9F9;" +
-      "  border-bottom: 1px solid #e2c8ba;" +
-      "  font-family: inherit;" +
-      "  font-size: 14px;" +
-      "  direction: rtl;" +
-      "  z-index: 9999;" +
+      "#kanaan-music-bar {" +
+      "width:100%;" +
+      "background:#3f452b;" +
+      "color:white;" +
+      "border-bottom:1px solid rgba(255,255,255,0.25);" +
+      "font-family:inherit;" +
+      "font-size:14px;" +
+      "direction:rtl;" +
+      "z-index:9999;" +
       "}" +
-      "#gw-music-bar .gw-music-inner {" +
-      "  max-width: 1200px;" +
-      "  margin: 0 auto;" +
-      "  padding: 6px 12px;" +
-      "  display: flex;" +
-      "  align-items: center;" +
-      "  justify-content: space-between;" +
-      "  gap: 12px;" +
+      "#kanaan-music-bar .kanaan-music-inner {" +
+      "max-width:1200px;" +
+      "margin:0 auto;" +
+      "padding:6px 12px;" +
+      "display:flex;" +
+      "align-items:center;" +
+      "justify-content:space-between;" +
+      "gap:12px;" +
       "}" +
-      "#gw-music-bar #gw-music-title {" +
-      "  font-size: 12px;" +
-      "  color: #5b4035;" +
+      "#kanaan-music-title {" +
+      "font-size:12px;" +
+      "color:#f6eadb;" +
+      "margin-right:8px;" +
       "}" +
-      "#gw-music-bar button {" +
-      "  border: none;" +
-      "  padding: 4px 10px;" +
-      "  border-radius: 999px;" +
-      "  cursor: pointer;" +
-      "  font-size: 12px;" +
-      "  background: #f3d4c5;" +
-      "  color: #4a2f26;" +
+      "#kanaan-music-bar button {" +
+      "border:1px solid rgba(255,255,255,0.35);" +
+      "padding:4px 10px;" +
+      "border-radius:999px;" +
+      "cursor:pointer;" +
+      "font-size:12px;" +
+      "background:#f3d4c5;" +
+      "color:#3b2a22;" +
       "}";
 
     document.head.appendChild(style);
 
-    // ===== 5) منطق الصوت =====
     var audio = null;
 
     function saveState() {
@@ -123,11 +104,8 @@
     }
 
     function updateTitle() {
-      var titleSpan = document.getElementById("gw-music-title");
-      if (titleSpan) {
-        titleSpan.textContent =
-          "المقطع الحالي: " + tracks[currentIndex].title;
-      }
+      var titleSpan = document.getElementById("kanaan-music-title");
+      if (titleSpan) titleSpan.textContent = "المقطع الحالي: " + tracks[currentIndex].title;
     }
 
     function createAudio() {
@@ -135,23 +113,19 @@
         audio.pause();
         audio = null;
       }
+
       audio = new Audio(tracks[currentIndex].url);
       audio.loop = true;
       audio.volume = 0.4;
 
-      // لما تجهز الميتاداتا نرجع لآخر ثانية محفوظة
       audio.addEventListener("loadedmetadata", function () {
         var dur = audio.duration || 0;
-        var pos = lastPosition || 0;
-        if (dur && pos > 0 && pos < dur) {
-          audio.currentTime = pos;
+        if (dur && lastPosition > 0 && lastPosition < dur) {
+          audio.currentTime = lastPosition;
         }
 
         if (isPlaying) {
-          audio
-            .play()
-            .then(function () {})
-            .catch(function () {});
+          audio.play().catch(function () {});
         }
       });
     }
@@ -159,25 +133,19 @@
     createAudio();
     updateTitle();
 
-    var toggleBtn = document.getElementById("gw-music-toggle");
-    var nextBtn = document.getElementById("gw-music-next");
-    var hideBtn = document.getElementById("gw-music-hide");
+    var toggleBtn = document.getElementById("kanaan-music-toggle");
+    var nextBtn = document.getElementById("kanaan-music-next");
+    var hideBtn = document.getElementById("kanaan-music-hide");
 
-    if (isPlaying && toggleBtn) {
-      toggleBtn.textContent = "⏸️ إيقاف";
-    }
+    if (isPlaying && toggleBtn) toggleBtn.textContent = "⏸️ إيقاف";
 
-    // زر تشغيل/إيقاف
     toggleBtn.addEventListener("click", function () {
       if (!isPlaying) {
-        audio
-          .play()
-          .then(function () {
-            isPlaying = true;
-            toggleBtn.textContent = "⏸️ إيقاف";
-            saveState();
-          })
-          .catch(function () {});
+        audio.play().then(function () {
+          isPlaying = true;
+          toggleBtn.textContent = "⏸️ إيقاف";
+          saveState();
+        }).catch(function () {});
       } else {
         audio.pause();
         isPlaying = false;
@@ -187,22 +155,16 @@
       }
     });
 
-    // زر تغيير المقطع
     nextBtn.addEventListener("click", function () {
       currentIndex = (currentIndex + 1) % tracks.length;
-      lastPosition = 0; // نبدأ من البداية في المقطع الجديد
+      lastPosition = 0;
       createAudio();
       updateTitle();
-      if (isPlaying) {
-        audio
-          .play()
-          .then(function () {})
-          .catch(function () {});
-      }
+
+      if (isPlaying) audio.play().catch(function () {});
       saveState();
     });
 
-    // زر إخفاء
     hideBtn.addEventListener("click", function () {
       if (audio) {
         lastPosition = audio.currentTime;
@@ -213,37 +175,30 @@
       bar.style.display = "none";
     });
 
-    // نحفظ الوقت قبل مغادرة الصفحة
     window.addEventListener("beforeunload", function () {
-      if (audio) {
-        lastPosition = audio.currentTime;
-      }
+      if (audio) lastPosition = audio.currentTime;
       saveState();
     });
 
-    // ===== 6) زر الأيقونة في أعلى يمين الصفحة (أسود) =====
     var iconBtn = document.createElement("button");
-    iconBtn.id = "gw-header-music-btn";
+    iconBtn.id = "kanaan-header-music-btn";
     iconBtn.type = "button";
     iconBtn.textContent = "♫";
     iconBtn.title = "موسيقى أرض كنعان";
     iconBtn.style.cssText =
-      "position: absolute;" +
-      "top: 12px;" +
-      "right: 20px;" +
-      "z-index: 10000;" +
-      "background: transparent;" +
-      "border: none;" +
-      "cursor: pointer;" +
-      "font-size: 24px;" +
-      "color: black;";
+      "position:absolute;" +
+      "top:12px;" +
+      "right:65px;" +
+      "z-index:10000;" +
+      "background:transparent;" +
+      "border:none;" +
+      "cursor:pointer;" +
+      "font-size:28px;" +
+      "color:white;" +
+      "text-shadow:0 0 8px rgba(0,0,0,0.8);";
 
     iconBtn.addEventListener("click", function () {
-      if (bar.style.display === "none") {
-        bar.style.display = "block";
-      } else {
-        bar.style.display = "none";
-      }
+      bar.style.display = bar.style.display === "none" ? "block" : "none";
     });
 
     document.body.appendChild(iconBtn);
