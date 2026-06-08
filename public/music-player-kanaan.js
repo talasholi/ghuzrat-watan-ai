@@ -21,16 +21,20 @@
     var oldBtn = document.getElementById("kanaan-header-music-btn");
     if (oldBtn && oldBtn.parentNode) oldBtn.parentNode.removeChild(oldBtn);
 
+    var currentIndex = 0;
+    var isPlaying = false;
+    var lastPosition = 0;
+
     var savedState = null;
     try {
       savedState = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    } catch (e) {
-      savedState = null;
-    }
+    } catch (e) {}
 
-    var currentIndex = savedState && typeof savedState.currentIndex === "number" ? savedState.currentIndex : 0;
-    var isPlaying = savedState && typeof savedState.isPlaying === "boolean" ? savedState.isPlaying : false;
-    var lastPosition = savedState && typeof savedState.position === "number" ? savedState.position : 0;
+    if (savedState) {
+      if (typeof savedState.currentIndex === "number") currentIndex = savedState.currentIndex;
+      if (typeof savedState.isPlaying === "boolean") isPlaying = savedState.isPlaying;
+      if (typeof savedState.position === "number") lastPosition = savedState.position;
+    }
 
     var bar = document.createElement("div");
     bar.id = "kanaan-music-bar";
@@ -54,9 +58,9 @@
     style.textContent =
       "#kanaan-music-bar {" +
       "width:100%;" +
-      "background:#3f452b;" +
-      "color:white;" +
-      "border-bottom:1px solid rgba(255,255,255,0.25);" +
+      "background:rgba(45,35,25,0.92);" +
+      "color:#e8d8c3;" +
+      "border-bottom:1px solid rgba(232,216,195,0.25);" +
       "font-family:inherit;" +
       "font-size:14px;" +
       "direction:rtl;" +
@@ -73,7 +77,7 @@
       "}" +
       "#kanaan-music-title {" +
       "font-size:12px;" +
-      "color:#f6eadb;" +
+      "color:#e8d8c3;" +
       "margin-right:8px;" +
       "}" +
       "#kanaan-music-bar button {" +
@@ -82,8 +86,8 @@
       "border-radius:999px;" +
       "cursor:pointer;" +
       "font-size:12px;" +
-      "background:#f3d4c5;" +
-      "color:#3b2a22;" +
+      "background:#c8a98a;" +
+      "color:#ffffff;" +
       "}";
 
     document.head.appendChild(style);
@@ -92,14 +96,11 @@
 
     function saveState() {
       try {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            currentIndex: currentIndex,
-            isPlaying: isPlaying,
-            position: audio ? audio.currentTime : lastPosition
-          })
-        );
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          currentIndex: currentIndex,
+          isPlaying: isPlaying,
+          position: audio ? audio.currentTime : lastPosition
+        }));
       } catch (e) {}
     }
 
@@ -109,10 +110,7 @@
     }
 
     function createAudio() {
-      if (audio) {
-        audio.pause();
-        audio = null;
-      }
+      if (audio) audio.pause();
 
       audio = new Audio(tracks[currentIndex].url);
       audio.loop = true;
@@ -123,10 +121,7 @@
         if (dur && lastPosition > 0 && lastPosition < dur) {
           audio.currentTime = lastPosition;
         }
-
-        if (isPlaying) {
-          audio.play().catch(function () {});
-        }
+        if (isPlaying) audio.play().catch(function () {});
       });
     }
 
@@ -137,7 +132,7 @@
     var nextBtn = document.getElementById("kanaan-music-next");
     var hideBtn = document.getElementById("kanaan-music-hide");
 
-    if (isPlaying && toggleBtn) toggleBtn.textContent = "⏸️ إيقاف";
+    if (isPlaying) toggleBtn.textContent = "⏸️ إيقاف";
 
     toggleBtn.addEventListener("click", function () {
       if (!isPlaying) {
@@ -160,7 +155,6 @@
       lastPosition = 0;
       createAudio();
       updateTitle();
-
       if (isPlaying) audio.play().catch(function () {});
       saveState();
     });
@@ -188,7 +182,7 @@
     iconBtn.style.cssText =
       "position:absolute;" +
       "top:12px;" +
-      "right:65px;" +
+      "right:110px;" +
       "z-index:10000;" +
       "background:transparent;" +
       "border:none;" +
