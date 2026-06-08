@@ -218,7 +218,7 @@
     iconBtn.style.cssText =
       "position:absolute;" +
       "top:12px;" +
-      "right:1px;" +
+      "right:2px;" +
       "z-index:10000;" +
       "background:transparent;" +
       "border:none;" +
